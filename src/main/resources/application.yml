@@ -1,0 +1,38 @@
+spring:
+  messages:
+    basename: messages
+    encoding: UTF-8
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/ai_shenji_v2?serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 50MB
+
+server:
+  port: ${SERVER_PORT:18081}
+  servlet:
+    context-path: /api
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    root: INFO
+    com.compliancemind.soc: INFO
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:replace-this-with-a-long-secret}
+    expire-seconds: ${JWT_EXPIRE_SECONDS:7200}
+  storage:
+    root: ${STORAGE_ROOT:storage}
+  ai:
+    ollama-url: ${OLLAMA_URL:http://localhost:11434}
+    model-name: ${OLLAMA_MODEL:gemma2:2b}

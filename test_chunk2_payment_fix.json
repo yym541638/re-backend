@@ -1,0 +1,45 @@
+﻿{
+    "payment_submit":  {
+                           "code":  0,
+                           "message":  "æå",
+                           "data":  {
+                                        "order_no":  "ORD317745877979904157",
+                                        "payment_url":  "/api/payment/mock/success?orderNo=ORD317745877979904157",
+                                        "qr_code":  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+                                        "expire_time":  "2026-03-27 13:33:18"
+                                    }
+                       },
+    "mock_success":  {
+                         "code":  0,
+                         "message":  "æå",
+                         "data":  "http://localhost:8080/order?orderNo=ORD317745877979904157\u0026payStatus=success"
+                     },
+    "payment_query_after":  {
+                                "code":  0,
+                                "message":  "æå",
+                                "data":  {
+                                             "status":  "PAID",
+                                             "amount":  5999,
+                                             "order_no":  "ORD317745877979904157",
+                                             "transaction_id":  "MOCK1774587798048",
+                                             "pay_time":  "2026-03-27 13:03:18"
+                                         }
+                            },
+    "product_my_after":  {
+                             "code":  0,
+                             "message":  "æå",
+                             "data":  [
+                                          {
+                                              "status":  "ACTIVE",
+                                              "product_id":  1,
+                                              "product_name":  "SOC 2",
+                                              "package_id":  1,
+                                              "package_name":  "Basic 3",
+                                              "audit_type":  "Type1",
+                                              "source_order_no":  "ORD317745877979904157",
+                                              "start_time":  "2026-03-27 13:03:18",
+                                              "end_time":  null
+                                          }
+                                      ]
+                         }
+}

@@ -1,0 +1,335 @@
+﻿{
+    "control_test_create":  {
+                                "code":  0,
+                                "message":  "æå",
+                                "data":  {
+                                             "testId":  1,
+                                             "projectId":  2,
+                                             "title":  "Access Control Test",
+                                             "description":  "Verify quarterly access review",
+                                             "riskLevel":  "HIGH",
+                                             "riskDescription":  "Unauthorized access",
+                                             "cosoPrinciple":  "Control Activities",
+                                             "controlProcedure":  "Quarterly user access review",
+                                             "resultStatus":  "FAIL",
+                                             "currentVersion":  "V1",
+                                             "deleted":  0,
+                                             "createdBy":  3,
+                                             "updatedBy":  3,
+                                             "createdAt":  null,
+                                             "updatedAt":  null
+                                         }
+                            },
+    "control_test_list":  {
+                              "code":  0,
+                              "message":  "æå",
+                              "data":  {
+                                           "total":  1,
+                                           "page":  1,
+                                           "pageSize":  10,
+                                           "list":  [
+                                                        {
+                                                            "testId":  1,
+                                                            "projectId":  2,
+                                                            "title":  "Access Control Test",
+                                                            "description":  "Verify quarterly access review",
+                                                            "riskLevel":  "HIGH",
+                                                            "riskDescription":  "Unauthorized access",
+                                                            "cosoPrinciple":  "Control Activities",
+                                                            "controlProcedure":  "Quarterly user access review",
+                                                            "resultStatus":  "FAIL",
+                                                            "currentVersion":  "V1",
+                                                            "deleted":  0,
+                                                            "createdBy":  3,
+                                                            "updatedBy":  3,
+                                                            "createdAt":  "2026-03-27T13:01:09",
+                                                            "updatedAt":  "2026-03-27T13:01:09"
+                                                        }
+                                                    ]
+                                       }
+                          },
+    "gap_list":  {
+                     "code":  0,
+                     "message":  "æå",
+                     "data":  [
+                                  {
+                                      "gapId":  1,
+                                      "projectId":  2,
+                                      "sourceTestId":  1,
+                                      "controlTitle":  "Access Control Test",
+                                      "gapLevel":  "HIGH",
+                                      "status":  "OPEN",
+                                      "gapDescription":  "æ§å¶æµè¯æªè¾¾å°é¢æç»æï¼éå\u0085³æ³¨ï¼Access Control Test",
+                                      "remediationSuggestion":  "å»ºè®®è¡¥å\u0085\u0085æ§å¶æµç¨ãè´£ä»»äººåè¯æ®ææï¼éç¹ä¿®å¤ï¼Quarterly user access review",
+                                      "createdAt":  "2026-03-27T13:01:09",
+                                      "updatedAt":  "2026-03-27T13:01:09"
+                                  }
+                              ]
+                 },
+    "pass_rate":  {
+                      "code":  0,
+                      "message":  "æå",
+                      "data":  {
+                                   "projectId":  2,
+                                   "total":  1,
+                                   "passed":  0,
+                                   "failed":  1,
+                                   "pending":  0,
+                                   "gapCount":  1,
+                                   "passRate":  0.00,
+                                   "assessment":  "é£é©è¾é«"
+                               }
+                  },
+    "payment_submit":  {
+                           "code":  0,
+                           "message":  "æå",
+                           "data":  {
+                                        "order_no":  "ORD317745876693782295",
+                                        "payment_url":  "/api/payment/mock/success?orderNo=ORD317745876693782295",
+                                        "qr_code":  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+                                        "expire_time":  "2026-03-27 13:31:09"
+                                    }
+                       },
+    "payment_query_before":  {
+                                 "code":  0,
+                                 "message":  "æå",
+                                 "data":  {
+                                              "status":  "PENDING",
+                                              "amount":  5999,
+                                              "order_no":  "ORD317745876693782295",
+                                              "transaction_id":  null,
+                                              "pay_time":  null
+                                          }
+                             },
+    "payment_mock_success":  {
+                                 "code":  401,
+                                 "message":  "ç¨æ·æªç»å½",
+                                 "data":  null
+                             },
+    "payment_query_after":  {
+                                "code":  0,
+                                "message":  "æå",
+                                "data":  {
+                                             "status":  "PENDING",
+                                             "amount":  5999,
+                                             "order_no":  "ORD317745876693782295",
+                                             "transaction_id":  null,
+                                             "pay_time":  null
+                                         }
+                            },
+    "order_my":  {
+                     "code":  0,
+                     "message":  "æå",
+                     "data":  {
+                                  "total":  1,
+                                  "page":  1,
+                                  "pageSize":  10,
+                                  "list":  [
+                                               {
+                                                   "orderId":  1,
+                                                   "orderNo":  "ORD317745876693782295",
+                                                   "userId":  3,
+                                                   "productId":  1,
+                                                   "packageId":  1,
+                                                   "productName":  "SOC 2",
+                                                   "packageName":  "Basic 3",
+                                                   "auditType":  "Type1",
+                                                   "amount":  5999,
+                                                   "paymentMethod":  "PAYPAL",
+                                                   "status":  "PENDING",
+                                                   "transactionId":  null,
+                                                   "returnUrl":  "http://localhost:8080/order",
+                                                   "notifyUrl":  "http://127.0.0.1:18081/api/payment/notify",
+                                                   "payTime":  null,
+                                                   "createdAt":  "2026-03-27T13:01:09",
+                                                   "updatedAt":  "2026-03-27T13:01:09"
+                                               }
+                                           ]
+                              }
+                 },
+    "product_my":  {
+                       "code":  0,
+                       "message":  "æå",
+                       "data":  [
+
+                                ]
+                   },
+    "report_create":  {
+                          "code":  0,
+                          "message":  "æå",
+                          "data":  {
+                                       "taskId":  "1",
+                                       "status":  "PENDING",
+                                       "progress":  0,
+                                       "downloadUrl":  null
+                                   }
+                      },
+    "report_status":  {
+                          "code":  0,
+                          "message":  "æå",
+                          "data":  {
+                                       "taskId":  "1",
+                                       "status":  "SUCCESS",
+                                       "progress":  100,
+                                       "downloadUrl":  "/api/analysis/download-report/1"
+                                   }
+                      },
+    "report_download":  {
+                            "exists":  true,
+                            "length":  1471
+                        },
+    "operation_log":  {
+                          "code":  0,
+                          "message":  "æå",
+                          "data":  {
+                                       "total":  11,
+                                       "page":  1,
+                                       "pageSize":  20,
+                                       "list":  [
+                                                    {
+                                                        "logId":  18,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "REPORT",
+                                                        "actionType":  "CREATE_TASK",
+                                                        "resourceType":  "PROJECT",
+                                                        "resourceId":  "2",
+                                                        "resourceName":  "èè°æµè¯é¡¹ç®",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "åå»ºæ¥åä»»å¡",
+                                                        "createdAt":  "2026-03-27T13:01:09"
+                                                    },
+                                                    {
+                                                        "logId":  16,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "CONTROL_TEST",
+                                                        "actionType":  "CREATE",
+                                                        "resourceType":  "CONTROL_TEST",
+                                                        "resourceId":  "1",
+                                                        "resourceName":  "Access Control Test",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "åå»ºæ§å¶æµè¯",
+                                                        "createdAt":  "2026-03-27T13:01:09"
+                                                    },
+                                                    {
+                                                        "logId":  15,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "GAP_ANALYSIS",
+                                                        "actionType":  "REGENERATE",
+                                                        "resourceType":  "PROJECT",
+                                                        "resourceId":  "2",
+                                                        "resourceName":  "Gap Analysis",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "éæ°çæå·®è·åæ",
+                                                        "createdAt":  "2026-03-27T13:01:09"
+                                                    },
+                                                    {
+                                                        "logId":  14,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "RCM",
+                                                        "actionType":  "PROMOTE_STAGE",
+                                                        "resourceType":  "RCM",
+                                                        "resourceId":  "13",
+                                                        "resourceName":  "è®¿é®æ§å¶ç­ç¥",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "åæ­¥å° FINAL",
+                                                        "createdAt":  "2026-03-27T13:00:34"
+                                                    },
+                                                    {
+                                                        "logId":  13,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "RCM",
+                                                        "actionType":  "FILL_BY_AI",
+                                                        "resourceType":  "RCM",
+                                                        "resourceId":  "8",
+                                                        "resourceName":  "è®¿é®æ§å¶ç­ç¥",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "AI è¡¥å\u0085¨åæ¡ RCM",
+                                                        "createdAt":  "2026-03-27T13:00:34"
+                                                    },
+                                                    {
+                                                        "logId":  12,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "RCM",
+                                                        "actionType":  "AI_GENERATE",
+                                                        "resourceType":  "PROJECT",
+                                                        "resourceId":  "2",
+                                                        "resourceName":  "AI RCM",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "AI çæ RCM",
+                                                        "createdAt":  "2026-03-27T13:00:34"
+                                                    },
+                                                    {
+                                                        "logId":  11,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "REQUEST",
+                                                        "actionType":  "UPLOAD_ATTACHMENT",
+                                                        "resourceType":  "REQUEST",
+                                                        "resourceId":  "2",
+                                                        "resourceName":  "Access Review Request",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "ä¸ä¼ éä»¶ï¼temp_test_upload.pdf",
+                                                        "createdAt":  "2026-03-27T12:59:27"
+                                                    },
+                                                    {
+                                                        "logId":  10,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "RCM",
+                                                        "actionType":  "SYNC_FROM_REQUEST",
+                                                        "resourceType":  "REQUEST",
+                                                        "resourceId":  "2",
+                                                        "resourceName":  "Access Review Request",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "æ ¹æ®è¯·æ±æ´æ° AI èç¨¿",
+                                                        "createdAt":  "2026-03-27T12:59:27"
+                                                    },
+                                                    {
+                                                        "logId":  9,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "REQUEST",
+                                                        "actionType":  "CREATE",
+                                                        "resourceType":  "REQUEST",
+                                                        "resourceId":  "2",
+                                                        "resourceName":  "Access Review Request",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "åå»ºè¯·æ±",
+                                                        "createdAt":  "2026-03-27T12:59:27"
+                                                    },
+                                                    {
+                                                        "logId":  8,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "RCM",
+                                                        "actionType":  "SYNC_FROM_REQUEST",
+                                                        "resourceType":  "REQUEST",
+                                                        "resourceId":  "2",
+                                                        "resourceName":  "Access Review Request",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "æ ¹æ®è¯·æ±çæ AI èç¨¿",
+                                                        "createdAt":  "2026-03-27T12:59:27"
+                                                    },
+                                                    {
+                                                        "logId":  7,
+                                                        "userId":  3,
+                                                        "username":  "Codex Compat",
+                                                        "moduleName":  "PROJECT",
+                                                        "actionType":  "CREATE",
+                                                        "resourceType":  "PROJECT",
+                                                        "resourceId":  "2",
+                                                        "resourceName":  "èè°æµè¯é¡¹ç®",
+                                                        "projectId":  2,
+                                                        "actionDetail":  "åå»ºé¡¹ç®",
+                                                        "createdAt":  "2026-03-27T12:59:27"
+                                                    }
+                                                ]
+                                   }
+                      }
+}
