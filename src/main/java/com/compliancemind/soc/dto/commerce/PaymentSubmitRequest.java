@@ -1,8 +1,6 @@
 package com.compliancemind.soc.dto.commerce;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
@@ -11,11 +9,9 @@ public class PaymentSubmitRequest {
     @JsonAlias({"order_no"})
     private String orderNo;
 
-    @NotNull(message = "产品不能为空")
     @JsonAlias({"product_id"})
     private Integer productId;
 
-    @NotNull(message = "套餐不能为空")
     @JsonAlias({"package_id"})
     private Integer packageId;
 
@@ -27,9 +23,7 @@ public class PaymentSubmitRequest {
     @JsonAlias({"payment_method"})
     private String paymentMethod;
 
-    @JsonAlias({"return_url"})
-    private String returnUrl;
-
-    @JsonAlias({"notify_url"})
-    private String notifyUrl;
+    /** 用户选中的套餐能力，逗号分隔，如 "Security,Availability,Privacy"。 */
+    @JsonAlias({"select_features"})
+    private String selectFeatures;
 }

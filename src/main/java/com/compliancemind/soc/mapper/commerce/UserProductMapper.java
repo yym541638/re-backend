@@ -15,7 +15,7 @@ import java.util.List;
 public interface UserProductMapper {
 
     @Select("""
-        select user_product_id, user_id, product_id, product_name, package_id, package_name, audit_type, source_order_no,
+        select user_product_id, user_id, product_id, product_name, package_id, audit_type, included_features, source_order_no,
                status, start_time, end_time, created_at, updated_at
         from sys_user_product
         where user_id = #{userId}
@@ -28,7 +28,7 @@ public interface UserProductMapper {
     long countActiveByUserId(@Param("userId") Integer userId);
 
     @Select("""
-        select user_product_id, user_id, product_id, product_name, package_id, package_name, audit_type, source_order_no,
+        select user_product_id, user_id, product_id, product_name, package_id, audit_type, included_features, source_order_no,
                status, start_time, end_time, created_at, updated_at
         from sys_user_product
         where user_id = #{userId} and product_id = #{productId} and audit_type = #{auditType}
@@ -38,10 +38,21 @@ public interface UserProductMapper {
                           @Param("productId") Integer productId,
                           @Param("auditType") String auditType);
 
+    @Select("""
+        select user_product_id, user_id, product_id, product_name, package_id, audit_type, included_features, source_order_no,
+               status, start_time, end_time, created_at, updated_at
+        from sys_user_product
+        where user_id = #{userId} and product_id = #{productId}
+        order by user_product_id desc
+        limit 1
+        """)
+    UserProduct selectByUserIdAndProductId(@Param("userId") Integer userId,
+                                           @Param("productId") Integer productId);
+
     @Insert("""
-        insert into sys_user_product(user_id, product_id, product_name, package_id, package_name, audit_type, source_order_no,
+        insert into sys_user_product(user_id, product_id, product_name, package_id, audit_type, included_features, source_order_no,
                                      status, start_time, end_time, created_at, updated_at)
-        values(#{userId}, #{productId}, #{productName}, #{packageId}, #{packageName}, #{auditType}, #{sourceOrderNo},
+        values(#{userId}, #{productId}, #{productName}, #{packageId}, #{auditType}, #{includedFeatures}, #{sourceOrderNo},
                #{status}, #{startTime}, #{endTime}, now(), now())
         """)
     @Options(useGeneratedKeys = true, keyProperty = "userProductId")
@@ -50,7 +61,7 @@ public interface UserProductMapper {
     @Update("""
         update sys_user_product
         set package_id = #{packageId},
-            package_name = #{packageName},
+            included_features = #{includedFeatures},
             source_order_no = #{sourceOrderNo},
             status = #{status},
             start_time = #{startTime},
@@ -59,4 +70,12 @@ public interface UserProductMapper {
         where user_product_id = #{userProductId}
         """)
     int update(UserProduct userProduct);
+
+    @Update("""
+        update sys_user_product
+        set included_features = #{includedFeatures},
+            updated_at = now()
+        where user_product_id = #{userProductId}
+        """)
+    int updateIncludedFeatures(UserProduct userProduct);
 }

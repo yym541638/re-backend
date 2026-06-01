@@ -16,11 +16,15 @@ import com.compliancemind.soc.mapper.commerce.ProductMapper;
 import com.compliancemind.soc.mapper.commerce.UserProductMapper;
 import com.compliancemind.soc.service.operationlog.OperationLogService;
 import com.compliancemind.soc.security.CurrentUserAccessor;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
@@ -39,19 +43,22 @@ public class OrderService {
     private final UserAccountMapper userAccountMapper;
     private final CurrentUserAccessor currentUserAccessor;
     private final OperationLogService operationLogService;
+    private final ObjectMapper objectMapper;
 
     public OrderService(OrderMapper orderMapper,
                         ProductMapper productMapper,
                         UserProductMapper userProductMapper,
                         UserAccountMapper userAccountMapper,
                         CurrentUserAccessor currentUserAccessor,
-                        OperationLogService operationLogService) {
+                        OperationLogService operationLogService,
+                        ObjectMapper objectMapper) {
         this.orderMapper = orderMapper;
         this.productMapper = productMapper;
         this.userProductMapper = userProductMapper;
         this.userAccountMapper = userAccountMapper;
         this.currentUserAccessor = currentUserAccessor;
         this.operationLogService = operationLogService;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -90,14 +97,12 @@ public class OrderService {
         orderRecord.setAuditType(SocConstants.AuditType.INTERNAL_TYPE2.equals(resolvedAuditType)
             ? SocConstants.AuditType.DISPLAY_TYPE2
             : SocConstants.AuditType.DISPLAY_TYPE1);
-        // Backend is the pricing authority; ignore client amount to prevent tampering.
+        orderRecord.setIncludedFeatures(resolveIncludedFeaturesText(request, productPackage));
         orderRecord.setAmount(resolvedAmount);
         orderRecord.setPaymentMethod(request.getPaymentMethod() == null || request.getPaymentMethod().isBlank()
-            ? SocConstants.Order.PAYMENT_METHOD_MOCK
+            ? null
             : request.getPaymentMethod().trim());
         orderRecord.setStatus(SocConstants.Order.STATUS_PENDING);
-        orderRecord.setReturnUrl(request.getReturnUrl());
-        orderRecord.setNotifyUrl(request.getNotifyUrl());
         orderMapper.insert(orderRecord);
         operationLogService.record(SocConstants.OperationLog.Module.ORDER,
             SocConstants.OperationLog.Action.CREATE,
@@ -107,6 +112,56 @@ public class OrderService {
             null,
             SocConstants.OperationLog.Detail.ORDER_CREATE_EN);
         return orderRecord;
+    }
+
+    /**
+     * 支付提交（Demo）：直接写入/更新用户已购产品，不区分套餐。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void grantUserProductOnSubmit(PaymentSubmitRequest request) {
+        UserAccount currentUser = currentUser();
+        if (request.getProductId() == null) {
+            throw new BizException(BizErrorCode.COMMERCE_PRODUCT_NOT_FOUND);
+        }
+        Product product = productMapper.selectById(request.getProductId());
+        if (product == null) {
+            throw new BizException(BizErrorCode.COMMERCE_PRODUCT_NOT_FOUND);
+        }
+        //如果前端没传订单号,后台自动生成
+        String orderNo = request.getOrderNo() == null || request.getOrderNo().isBlank()
+            ? generateOrderNo(currentUser.getUserId())
+            : request.getOrderNo().trim();
+        String includedFeatures = resolveSelectFeaturesText(request);
+
+        UserProduct existed = userProductMapper.selectByUserIdAndProductId(currentUser.getUserId(), product.getProductId());
+        if (existed == null) {
+            UserProduct userProduct = new UserProduct();
+            userProduct.setUserId(currentUser.getUserId());
+            userProduct.setProductId(product.getProductId());
+            userProduct.setProductName(product.getProductName());
+            userProduct.setIncludedFeatures(includedFeatures);
+            userProduct.setSourceOrderNo(orderNo);
+            userProduct.setStatus(SocConstants.UserProduct.STATUS_ACTIVE);
+            userProduct.setStartTime(LocalDateTime.now());
+            userProduct.setAuditType(request.getAuditType());
+            userProductMapper.insert(userProduct);
+        } else {
+            existed.setIncludedFeatures(includedFeatures);
+            userProductMapper.updateIncludedFeatures(existed);
+        }
+
+        operationLogService.record(SocConstants.OperationLog.Module.ORDER,
+            SocConstants.OperationLog.Action.CREATE,
+            SocConstants.OperationLog.EntityType.ORDER,
+            orderNo,
+            product.getProductName(),
+            null,
+            SocConstants.OperationLog.Detail.ORDER_CREATE_EN);
+        recordPaymentLog(SocConstants.OperationLog.Module.PAYMENT,
+            SocConstants.OperationLog.Action.PAID,
+            orderNo,
+            product.getProductName(),
+            SocConstants.OperationLog.Detail.PAYMENT_SUCCESS_EN);
     }
 
     public List<OrderRecord> myOrders() {
@@ -193,8 +248,9 @@ public class OrderService {
             userProduct.setProductId(orderRecord.getProductId());
             userProduct.setProductName(orderRecord.getProductName());
             userProduct.setPackageId(orderRecord.getPackageId());
-            userProduct.setPackageName(orderRecord.getPackageName());
+            //userProduct.setPackageName(orderRecord.getPackageName());
             userProduct.setAuditType(orderRecord.getAuditType());
+            userProduct.setIncludedFeatures(orderRecord.getIncludedFeatures());
             userProduct.setSourceOrderNo(orderRecord.getOrderNo());
             userProduct.setStatus(SocConstants.UserProduct.STATUS_ACTIVE);
             userProduct.setStartTime(LocalDateTime.now());
@@ -202,7 +258,8 @@ public class OrderService {
             return;
         }
         existed.setPackageId(orderRecord.getPackageId());
-        existed.setPackageName(orderRecord.getPackageName());
+        //existed.setPackageName(orderRecord.getPackageName());
+        existed.setIncludedFeatures(orderRecord.getIncludedFeatures());
         existed.setSourceOrderNo(orderRecord.getOrderNo());
         existed.setStatus(SocConstants.UserProduct.STATUS_ACTIVE);
         existed.setStartTime(LocalDateTime.now());
@@ -282,5 +339,45 @@ public class OrderService {
             return;
         }
         operationLogService.recordSystem(moduleName, actionType, SocConstants.OperationLog.EntityType.ORDER, orderNo, productName, null, actionDetail);
+    }
+
+    private String resolveSelectFeaturesText(PaymentSubmitRequest request) {
+        if (request.getSelectFeatures() == null || request.getSelectFeatures().isBlank()) {
+            return "";
+        }
+        List<String> parsed = new ArrayList<>();
+        for (String feature : request.getSelectFeatures().split(",")) {
+            if (feature != null && !feature.isBlank()) {
+                parsed.add(feature.trim());
+            }
+        }
+        return parsed.isEmpty() ? "" : String.join(",", parsed);
+    }
+
+    private String resolveIncludedFeaturesText(PaymentSubmitRequest request, ProductPackage productPackage) {
+        if (request.getSelectFeatures() != null && !request.getSelectFeatures().isBlank()) {
+            List<String> parsed = new ArrayList<>();
+            for (String feature : request.getSelectFeatures().split(",")) {
+                if (feature != null && !feature.isBlank()) {
+                    parsed.add(feature.trim());
+                }
+            }
+            if (!parsed.isEmpty()) {
+                return String.join(",", parsed);
+            }
+        }
+        List<String> fromPackage = parseJsonFeatureList(productPackage.getIncludedFeatures());
+        return fromPackage.isEmpty() ? "" : String.join(",", fromPackage);
+    }
+
+    private List<String> parseJsonFeatureList(String json) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception exception) {
+            return Collections.emptyList();
+        }
     }
 }

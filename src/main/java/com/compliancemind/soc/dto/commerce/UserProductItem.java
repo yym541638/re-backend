@@ -12,8 +12,8 @@ public class UserProductItem {
     private String productName;
     @JsonProperty("package_id")
     private Integer packageId;
-    @JsonProperty("package_name")
-    private String packageName;
+    @JsonProperty("included_features")
+    private String includedFeatures;
     @JsonProperty("audit_type")
     private String auditType;
     private String status;

@@ -17,16 +17,16 @@ import java.util.List;
 public interface OrderMapper {
 
     @Insert("""
-        insert into sys_order(order_no, user_id, product_id, package_id, product_name, package_name, audit_type, amount,
+        insert into sys_order(order_no, user_id, product_id, package_id, product_name, package_name, audit_type, included_features, amount,
                               payment_method, status, transaction_id, return_url, notify_url, pay_time, created_at, updated_at)
-        values(#{orderNo}, #{userId}, #{productId}, #{packageId}, #{productName}, #{packageName}, #{auditType}, #{amount},
+        values(#{orderNo}, #{userId}, #{productId}, #{packageId}, #{productName}, #{packageName}, #{auditType}, #{includedFeatures}, #{amount},
                #{paymentMethod}, #{status}, #{transactionId}, #{returnUrl}, #{notifyUrl}, #{payTime}, now(), now())
         """)
     @Options(useGeneratedKeys = true, keyProperty = "orderId")
     int insert(OrderRecord orderRecord);
 
     @Select("""
-        select order_id, order_no, user_id, product_id, package_id, product_name, package_name, audit_type, amount,
+        select order_id, order_no, user_id, product_id, package_id, product_name, package_name, audit_type, included_features, amount,
                payment_method, status, transaction_id, return_url, notify_url, pay_time, created_at, updated_at
         from sys_order
         where order_no = #{orderNo}
@@ -34,7 +34,7 @@ public interface OrderMapper {
     OrderRecord selectByOrderNo(@Param("orderNo") String orderNo);
 
     @Select("""
-        select order_id, order_no, user_id, product_id, package_id, product_name, package_name, audit_type, amount,
+        select order_id, order_no, user_id, product_id, package_id, product_name, package_name, audit_type, included_features, amount,
                payment_method, status, transaction_id, return_url, notify_url, pay_time, created_at, updated_at
         from sys_order
         where user_id = #{userId}

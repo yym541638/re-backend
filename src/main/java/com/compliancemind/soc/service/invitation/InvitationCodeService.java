@@ -140,6 +140,24 @@ public class InvitationCodeService {
     }
 
     /**
+     * 根据邀请码解析关联公司；不要求邀请码仍可用（注册页展示公司信息用）。
+     */
+    public Company resolveCompanyByCode(String code) {
+        if (code == null || code.isBlank()) {
+            throw new BizException(BizErrorCode.INVITATION_NOT_FOUND);
+        }
+        InvitationCode invitationCode = invitationCodeMapper.selectByCode(code.trim());
+        if (invitationCode == null) {
+            throw new BizException(BizErrorCode.INVITATION_NOT_FOUND);
+        }
+        Company company = companyMapper.selectById(invitationCode.getCompanyId());
+        if (company == null) {
+            throw new BizException(BizErrorCode.AUTH_INVITATION_COMPANY_MISSING);
+        }
+        return company;
+    }
+
+    /**
      * 注册成功后消费邀请码：更新使用次数/状态，并将用户加入邀请码关联的项目。
      * <p>由 {@link com.compliancemind.soc.service.auth.AuthService#register} 在携带有效邀请码时调用。</p>
      */

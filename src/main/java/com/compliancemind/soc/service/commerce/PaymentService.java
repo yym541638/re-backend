@@ -3,17 +3,13 @@ package com.compliancemind.soc.service.commerce;
 import com.compliancemind.soc.common.constants.SocConstants;
 import com.compliancemind.soc.dto.commerce.PaymentStatusResponse;
 import com.compliancemind.soc.dto.commerce.PaymentSubmitRequest;
-import com.compliancemind.soc.dto.commerce.PaymentSubmitResponse;
-import com.compliancemind.soc.entity.commerce.OrderRecord;
 import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 /**
- * 支付：提交订单支付、查询状态、回调处理、模拟成功（联调）。
+ * 支付：提交即开通已购产品、查询状态、回调处理、模拟成功（联调）。
  */
 @Service
 public class PaymentService {
@@ -24,17 +20,8 @@ public class PaymentService {
         this.orderService = orderService;
     }
 
-    public PaymentSubmitResponse submit(PaymentSubmitRequest request) {
-        OrderRecord orderRecord = orderService.createOrder(request);
-        PaymentSubmitResponse response = new PaymentSubmitResponse();
-        response.setOrderNo(orderRecord.getOrderNo());
-        response.setPaymentUrl(SocConstants.PaymentCallback.MOCK_SUCCESS_URL_PREFIX + "?" + SocConstants.PaymentCallback.PARAM_ORDER_NO + "=" + urlEncode(orderRecord.getOrderNo()));
-        response.setQrCode("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
-        response.setExpireTime(LocalDateTime.now().plusMinutes(SocConstants.PaymentCallback.MOCK_EXPIRE_MINUTES).format(DateTimeFormatter.ofPattern(SocConstants.Format.DATETIME_SECONDS)));
-        response.setAmount(orderRecord.getAmount());
-        response.setAnnualPrice(orderRecord.getAmount());
-        response.setAuditType(orderRecord.getAuditType());
-        return response;
+    public void submit(PaymentSubmitRequest request) {
+        orderService.grantUserProductOnSubmit(request);
     }
 
     public PaymentStatusResponse query(String orderNo) {

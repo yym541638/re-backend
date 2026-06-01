@@ -3,6 +3,7 @@ package com.compliancemind.soc.service.auth;
 import com.compliancemind.soc.dto.auth.LoginRequest;
 import com.compliancemind.soc.dto.auth.LoginResponse;
 import com.compliancemind.soc.dto.auth.RegisterRequest;
+import com.compliancemind.soc.dto.commerce.CompanyProfileResponse;
 import com.compliancemind.soc.entity.auth.Company;
 import com.compliancemind.soc.entity.auth.UserAccount;
 import com.compliancemind.soc.mapper.auth.CompanyMapper;
@@ -125,6 +126,14 @@ public class AuthService {
     }
 
     /**
+     * 根据邀请码返回关联公司的完整资料（注册页展示用）。
+     */
+    public CompanyProfileResponse getCompanyByInvitationCode(String code) {
+        Company company = invitationCodeService.resolveCompanyByCode(code);
+        return toCompanyProfileResponse(company);
+    }
+
+    /**
      * 组装登录/注册成功后的统一响应：JWT、购买状态、前端跳转及用户概要信息。
      * <p>由 {@link #login}、{@link #register}、{@link #me} 共用。</p>
      */
@@ -183,5 +192,18 @@ public class AuthService {
             return fullName;
         }
         throw new BizException(BizErrorCode.AUTH_DISPLAY_NAME_REQUIRED);
+    }
+
+    private CompanyProfileResponse toCompanyProfileResponse(Company company) {
+        CompanyProfileResponse response = new CompanyProfileResponse();
+        response.setCompanyId(company.getCompanyId());
+        response.setCompanyName(company.getCompanyName());
+        response.setCompanyCode(company.getCompanyCode());
+        response.setIndustry(company.getIndustry());
+        response.setWebsite(company.getWebsite());
+        response.setContactName(company.getContactName());
+        response.setContactPhone(company.getContactPhone());
+        response.setAddress(company.getAddress());
+        return response;
     }
 }

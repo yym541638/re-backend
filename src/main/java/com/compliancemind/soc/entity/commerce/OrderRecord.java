@@ -24,6 +24,8 @@ public class OrderRecord {
     private String packageName;
     /** 审计类型（Type1 / Type2）。 */
     private String auditType;
+    /** 套餐能力快照（JSON 数组字符串）。 */
+    private String includedFeatures;
     /** 订单金额（分/最小货币单位）。 */
     private Integer amount;
     /** 支付方式（如 PAYPAL、QRCODE）。 */

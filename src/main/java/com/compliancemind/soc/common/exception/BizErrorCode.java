@@ -35,6 +35,7 @@ public enum BizErrorCode {
     PROJECT_MEMBER_ROLE_UNSUPPORTED(400, "error.project.member_role_unsupported"),
 
     COMMERCE_PRODUCT_NOT_FOUND(404, "error.commerce.product_not_found"),
+    COMMERCE_USER_PRODUCT_NOT_FOUND(404, "error.commerce.user_product_not_found"),
     COMMERCE_PACKAGE_NOT_FOUND(404, "error.commerce.package_not_found"),
     COMMERCE_PRICE_INVALID(400, "error.commerce.price_invalid"),
 

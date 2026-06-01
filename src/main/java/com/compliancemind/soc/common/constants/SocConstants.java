@@ -35,10 +35,10 @@ public final class SocConstants {
     public static final class Security {
         public static final String PATH_AUTH_LOGIN = "/auth/login";
         public static final String PATH_AUTH_REGISTER = "/auth/register";
+        public static final String PATH_AUTH_COMPANY_BY_INVITATION = "/auth/company-by-invitation";
         public static final String PATH_INVITATION_VALIDATE = "/invitation-code/validate";
         public static final String PATH_PRODUCT_LIST = "/product/list";
         public static final String PATH_PRODUCT_PACKAGES = "/product/packages";
-        public static final String PATH_PRODUCT_DETAIL = "/product/detail/**";
         public static final String PATH_PAYMENT_QUERY = "/payment/query/**";
         public static final String PATH_PAYMENT_NOTIFY = "/payment/notify";
         public static final String PATH_PAYMENT_MOCK_SUCCESS = "/payment/mock/success";
@@ -46,10 +46,10 @@ public final class SocConstants {
         public static final String[] PERMIT_ALL_PATHS = {
             PATH_AUTH_LOGIN,
             PATH_AUTH_REGISTER,
+            PATH_AUTH_COMPANY_BY_INVITATION,
             PATH_INVITATION_VALIDATE,
             PATH_PRODUCT_LIST,
             PATH_PRODUCT_PACKAGES,
-            PATH_PRODUCT_DETAIL,
             PATH_PAYMENT_QUERY,
             PATH_PAYMENT_NOTIFY,
             PATH_PAYMENT_MOCK_SUCCESS

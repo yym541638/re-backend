@@ -18,10 +18,10 @@ public class UserProduct {
     private String productName;
     /** 套餐 ID。 */
     private Integer packageId;
-    /** 套餐名称快照。 */
-    private String packageName;
     /** 审计类型（Type1 / Type2）。 */
     private String auditType;
+    /** 已购套餐能力（JSON 数组字符串）。 */
+    private String includedFeatures;
     /** 来源订单号。 */
     private String sourceOrderNo;
     /** 订阅状态（如 ACTIVE）。 */
