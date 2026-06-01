@@ -126,7 +126,7 @@ public class ProductService { // 商品业务服务类
         response.setFeatures(toIncludedFeatureList(userProduct.getIncludedFeatures()));
 
         List<ProductPackage> packages = productMapper.listPackagesByProductId(product.getProductId());
-        ProductPackage pricingPackage = packages.isEmpty() ? null : packages.get(0);
+        ProductPackage pricingPackage = resolvePricingPackage(packages, userProduct);
         String purchasedAuditType = userProduct.getAuditType() != null && !userProduct.getAuditType().isBlank()
             ? userProduct.getAuditType()
             : (pricingPackage == null ? null : pricingPackage.getDefaultType());
@@ -250,6 +250,80 @@ public class ProductService { // 商品业务服务类
     // 特性名归一化：小写并移除非字母字符
     private String normalizeFeatureName(String value) {
         return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z]", ""); // 转小写并 strip 非 a-z
+    }
+
+    /**
+     * 为已购详情解析计价套餐：优先用户订阅的 packageId，再按已购能力精确匹配套餐，最后回退首个套餐。
+     */
+    ProductPackage resolvePricingPackage(List<ProductPackage> packages, UserProduct userProduct) {
+        if (packages == null || packages.isEmpty()) {
+            return null;
+        }
+        if (userProduct.getPackageId() != null) {
+            for (ProductPackage productPackage : packages) {
+                if (userProduct.getPackageId().equals(productPackage.getPackageId())) {
+                    return productPackage;
+                }
+            }
+        }
+        Set<String> purchasedFeatures = normalizeFeatureSet(toIncludedFeatureList(userProduct.getIncludedFeatures()));
+        if (!purchasedFeatures.isEmpty()) {
+            for (ProductPackage productPackage : packages) {
+                if (normalizeFeatureSet(parseJsonList(productPackage.getIncludedFeatures())).equals(purchasedFeatures)) {
+                    return productPackage;
+                }
+            }
+        }
+        return packages.get(0);
+    }
+
+    /**
+     * 支付提交时解析应绑定的套餐：优先请求 packageId，再按 selectFeatures 精确匹配。
+     */
+    public ProductPackage resolvePurchasePackage(Integer productId, Integer packageId, String selectFeatures) {
+        List<ProductPackage> packages = productMapper.listPackagesByProductId(productId);
+        if (packages.isEmpty()) {
+            return null;
+        }
+        if (packageId != null) {
+            for (ProductPackage productPackage : packages) {
+                if (packageId.equals(productPackage.getPackageId())) {
+                    return productPackage;
+                }
+            }
+        }
+        Set<String> selected = normalizeFeatureSet(parseSelectFeatures(selectFeatures));
+        if (!selected.isEmpty()) {
+            for (ProductPackage productPackage : packages) {
+                if (normalizeFeatureSet(parseJsonList(productPackage.getIncludedFeatures())).equals(selected)) {
+                    return productPackage;
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<String> parseSelectFeatures(String selectFeatures) {
+        if (selectFeatures == null || selectFeatures.isBlank()) {
+            return Collections.emptyList();
+        }
+        List<String> parsed = new ArrayList<>();
+        for (String feature : selectFeatures.split(",")) {
+            if (feature != null && !feature.isBlank()) {
+                parsed.add(feature.trim());
+            }
+        }
+        return parsed;
+    }
+
+    private Set<String> normalizeFeatureSet(List<String> features) {
+        Set<String> normalized = new HashSet<>();
+        for (String feature : features) {
+            if (feature != null && !feature.isBlank()) {
+                normalized.add(normalizeFeatureName(feature));
+            }
+        }
+        return normalized;
     }
 
     // 按审计类型解析套餐应展示的价格

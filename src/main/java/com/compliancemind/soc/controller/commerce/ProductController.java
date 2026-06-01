@@ -9,8 +9,6 @@ import com.compliancemind.soc.service.commerce.ProductService;
 
 import org.springframework.web.bind.annotation.GetMapping;
 
-import org.springframework.web.bind.annotation.PathVariable;
-
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import org.springframework.web.bind.annotation.RequestParam;
@@ -81,13 +79,13 @@ public class ProductController {
     /**
      * 用户已购产品详情展示。
      *
-     * <p>GET /product/detail/{productId}，需 JWT；基于当前用户已购记录返回展示信息。</p>
+     * <p>GET /product/detail?productId=xxx，需 JWT；基于当前用户已购记录返回展示信息。</p>
      *
-     * @param productId 产品 ID
+     * @param productId 产品 ID（Query 参数）
      * @return 当前用户已购产品详情
      */
-    @GetMapping("/detail/{productId}")
-    public ApiResponse<List<ProductDetail2Response>> detail(@PathVariable("productId") Integer productId) {
+    @GetMapping("/detail")
+    public ApiResponse<List<ProductDetail2Response>> detail(@RequestParam("productId") Integer productId) {
         return ApiResponse.success(productService.purchasedDetail(productId));
     }
 

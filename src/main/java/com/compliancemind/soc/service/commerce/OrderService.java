@@ -44,6 +44,7 @@ public class OrderService {
     private final CurrentUserAccessor currentUserAccessor;
     private final OperationLogService operationLogService;
     private final ObjectMapper objectMapper;
+    private final ProductService productService;
 
     public OrderService(OrderMapper orderMapper,
                         ProductMapper productMapper,
@@ -51,7 +52,8 @@ public class OrderService {
                         UserAccountMapper userAccountMapper,
                         CurrentUserAccessor currentUserAccessor,
                         OperationLogService operationLogService,
-                        ObjectMapper objectMapper) {
+                        ObjectMapper objectMapper,
+                        ProductService productService) {
         this.orderMapper = orderMapper;
         this.productMapper = productMapper;
         this.userProductMapper = userProductMapper;
@@ -59,6 +61,7 @@ public class OrderService {
         this.currentUserAccessor = currentUserAccessor;
         this.operationLogService = operationLogService;
         this.objectMapper = objectMapper;
+        this.productService = productService;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -132,6 +135,9 @@ public class OrderService {
             ? generateOrderNo(currentUser.getUserId())
             : request.getOrderNo().trim();
         String includedFeatures = resolveSelectFeaturesText(request);
+        ProductPackage pricingPackage = productService.resolvePurchasePackage(
+            product.getProductId(), request.getPackageId(), request.getSelectFeatures());
+        String persistedAuditType = resolvePersistedAuditType(request.getAuditType(), pricingPackage);
 
         UserProduct existed = userProductMapper.selectByUserIdAndProductId(currentUser.getUserId(), product.getProductId());
         if (existed == null) {
@@ -139,15 +145,21 @@ public class OrderService {
             userProduct.setUserId(currentUser.getUserId());
             userProduct.setProductId(product.getProductId());
             userProduct.setProductName(product.getProductName());
+            userProduct.setPackageId(pricingPackage == null ? request.getPackageId() : pricingPackage.getPackageId());
             userProduct.setIncludedFeatures(includedFeatures);
             userProduct.setSourceOrderNo(orderNo);
             userProduct.setStatus(SocConstants.UserProduct.STATUS_ACTIVE);
             userProduct.setStartTime(LocalDateTime.now());
-            userProduct.setAuditType(request.getAuditType());
+            userProduct.setAuditType(persistedAuditType);
             userProductMapper.insert(userProduct);
         } else {
+            existed.setPackageId(pricingPackage == null ? request.getPackageId() : pricingPackage.getPackageId());
             existed.setIncludedFeatures(includedFeatures);
-            userProductMapper.updateIncludedFeatures(existed);
+            existed.setAuditType(persistedAuditType);
+            existed.setSourceOrderNo(orderNo);
+            existed.setStatus(SocConstants.UserProduct.STATUS_ACTIVE);
+            existed.setStartTime(LocalDateTime.now());
+            userProductMapper.update(existed);
         }
 
         operationLogService.record(SocConstants.OperationLog.Module.ORDER,
@@ -339,6 +351,14 @@ public class OrderService {
             return;
         }
         operationLogService.recordSystem(moduleName, actionType, SocConstants.OperationLog.EntityType.ORDER, orderNo, productName, null, actionDetail);
+    }
+
+    private String resolvePersistedAuditType(String requestAuditType, ProductPackage pricingPackage) {
+        String resolved = resolveAuditType(requestAuditType,
+            pricingPackage == null ? null : pricingPackage.getDefaultType());
+        return SocConstants.AuditType.INTERNAL_TYPE2.equals(resolved)
+            ? SocConstants.AuditType.DISPLAY_TYPE2
+            : SocConstants.AuditType.DISPLAY_TYPE1;
     }
 
     private String resolveSelectFeaturesText(PaymentSubmitRequest request) {
