@@ -4,6 +4,7 @@ import com.compliancemind.soc.dto.analysis.PassRateResponse;
 import com.compliancemind.soc.dto.analysis.TrendPoint;
 import com.compliancemind.soc.entity.analysis.ScoreSnapshot;
 import com.compliancemind.soc.security.AuthorizationService;
+import com.compliancemind.soc.service.project.ProjectService;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,11 +18,14 @@ public class AnalysisService {
 
     private final ScoreSnapshotService scoreSnapshotService;
     private final AuthorizationService authorizationService;
+    private final ProjectService projectService;
 
     public AnalysisService(ScoreSnapshotService scoreSnapshotService,
-                           AuthorizationService authorizationService) {
+                           AuthorizationService authorizationService,
+                           ProjectService projectService) {
         this.scoreSnapshotService = scoreSnapshotService;
         this.authorizationService = authorizationService;
+        this.projectService = projectService;
     }
 
     public PassRateResponse getPassRate(Long projectId) {
@@ -39,6 +43,10 @@ public class AnalysisService {
         response.setGapCount(snapshot.getGapCount());
         response.setPassRate(snapshot.getPassRate());
         response.setAssessment(snapshot.getAssessment());
+        // 控制测试全部打分完成后，访问 Passing Scores 时将项目置为 End 并写入结束日期
+        if (snapshot.getTotalCount() > 0 && snapshot.getPendingCount() == 0) {
+            projectService.markProjectEnded(projectId);
+        }
         return response;
     }
 

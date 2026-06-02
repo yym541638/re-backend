@@ -32,6 +32,10 @@ public class LoginResponse {
         private String avatarUrl;
         @JsonProperty("job_title")
         private String jobTitle;
+        /** 用户类型：CLIENT / CONSULTANT / AUDITOR。 */
+        @JsonProperty("user_type")
+        private String userType;
+        /** 公司权限编码。 */
         @JsonProperty("role")
         private String roleCode;
     }

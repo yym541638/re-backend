@@ -103,6 +103,12 @@ public final class SocConstants {
     /** Account entity numeric flags. */
     public static final class Account {
         public static final int STATUS_ENABLED = 1;
+        /** 注册页用户类型：Clients。 */
+        public static final String USER_TYPE_CLIENT = "CLIENT";
+        /** 注册页用户类型：Consultant。 */
+        public static final String USER_TYPE_CONSULTANT = "CONSULTANT";
+        /** 注册页用户类型：Auditor。 */
+        public static final String USER_TYPE_AUDITOR = "AUDITOR";
     }
 
     /** SOC audit type normalization (internal vs persisted display). */
@@ -214,11 +220,16 @@ public final class SocConstants {
         public static final String CODE_PREFIX = "PRJ";
         public static final String INITIAL_VERSION = "V1";
         public static final int SOFT_DELETE_FLAG = 0;
+        /** 项目进行中（新建默认）。 */
+        public static final String STATUS_ACTIVE = "Active";
+        /** 项目已结束（Passing Scores 打分完成后）。 */
+        public static final String STATUS_END = "End";
     }
 
     /** File storage layout & allowed uploads. */
     public static final class Storage {
         public static final String REQUEST_PATH_PREFIX = "request/";
+        public static final String PROJECT_PATH_PREFIX = "project/";
         public static final String EXT_PDF = ".pdf";
         public static final String EXT_DOC = ".doc";
         public static final String EXT_DOCX = ".docx";

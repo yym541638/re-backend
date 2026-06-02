@@ -1,10 +1,13 @@
 package com.compliancemind.soc.dto.project;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 public class ProjectCreateRequest {
@@ -13,19 +16,20 @@ public class ProjectCreateRequest {
     @JsonAlias({"project_name"})
     private String projectName;
 
-    @NotBlank(message = "合规类型不能为空")
     @JsonAlias({"compliance_type", "type"})
     private String complianceType;
 
-    @NotBlank(message = "审计类型不能为空")
     @JsonAlias({"audit_type"})
     private String auditType;
 
-    @NotBlank(message = "项目状态不能为空")
-    private String status;
-
     @JsonAlias({"start_date"})
     private LocalDate startDate;
-    @JsonAlias({"end_date"})
-    private LocalDate endDate;
+
+    /**
+     * 项目维度角色分配：从本公司用户中选取并绑定到具体项目角色。
+     * 同一 userId 仅可出现一次；角色见 Project User Management 六档。
+     */
+    @Valid
+    @JsonAlias({"project_members", "roleAssignments"})
+    private List<ProjectMemberSaveRequest.MemberItem> members;
 }

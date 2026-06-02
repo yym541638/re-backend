@@ -1,0 +1,402 @@
+[
+  [
+    "",
+    "",
+    "Company",
+    "Project",
+    "Initial Request (platform level product)",
+    "RCM (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)"
+  ],
+  [
+    "Level1  - Product",
+    "SOC 2/Hippa/ISO",
+    "Y",
+    "Y",
+    "",
+    "",
+    "",
+    ""
+  ],
+  [
+    "Level 2 - Module",
+    "Secure/Availability/...",
+    "Y",
+    "Y",
+    "",
+    "",
+    "",
+    ""
+  ],
+  [
+    "Level 3 - Year",
+    "2025/2026...",
+    "Y",
+    "Y",
+    "",
+    "",
+    "",
+    ""
+  ],
+  [
+    "level 4 - Risk",
+    "CC.1....",
+    "Y",
+    "Y",
+    "",
+    "",
+    "",
+    ""
+  ],
+  [
+    "Process direction",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  [
+    "",
+    "",
+    "Consulting Side",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  [
+    "",
+    "Process",
+    "Roles",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  [
+    "1",
+    "Create company login",
+    "Comp Admin",
+    "manages",
+    "Level 1-L4 Product, module, Year, risk",
+    "",
+    "",
+    ""
+  ],
+  [
+    "2",
+    "Access to company site login",
+    "Comp Admin",
+    "manages",
+    "All users within the company dimension",
+    "All users within the project dimension",
+    "",
+    ""
+  ],
+  [
+    "3",
+    "Assign other users",
+    "Comp Admin",
+    "manages",
+    "",
+    "",
+    "",
+    ""
+  ],
+  [
+    "4",
+    "other users receive link invitation",
+    "1.Document owner",
+    "read access to assigned",
+    "Initial Request (platform level product)",
+    "",
+    "",
+    ""
+  ],
+  [
+    "5",
+    "register",
+    "2.General User",
+    "read access",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "3.Manager",
+    "read access",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "4.Manager 2",
+    "read access",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "5.1",
+    "Create Projects",
+    "3.Manager",
+    "Edit/remove/add",
+    "project",
+    "",
+    "",
+    ""
+  ],
+  [
+    "",
+    "",
+    "2.General User",
+    "read access",
+    "project",
+    "",
+    "",
+    ""
+  ],
+  [
+    "6",
+    "Edit Inital Request",
+    "2.General User",
+    "Edit/remove/add",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)",
+    "Gap Analysis (platform level product)"
+  ],
+  [
+    "7",
+    "Review/Send initial request",
+    "3.Manager",
+    "Edit/remove/add",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "8",
+    "Create RCM",
+    "2.General User",
+    "Edit/remove/add",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)",
+    "Gap Analysis (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "3.Manager",
+    "Edit/remove/add",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "9",
+    "Review RCM/Confirm RCM",
+    "2.General User",
+    "read access",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)",
+    "Gap Analysis (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "3.Manager",
+    "Edit/remove/add",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "10",
+    "Create Control Planning",
+    "2.General User",
+    "Edit/remove/add",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)",
+    "Gap Analysis (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "3.Manager",
+    "Edit/remove/add",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "11",
+    "Review Control Planning",
+    "2.General User",
+    "read access",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)",
+    "Gap Analysis (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "3.Manager",
+    "Edit/remove/add",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "12",
+    "Perform Control Testing",
+    "2.General User",
+    "Edit/remove/add",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)",
+    "Gap Analysis (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "3.Manager",
+    "Edit/remove/add",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "1.Document owner",
+    "read access to assigned",
+    "Additional Request (platform level product)",
+    "",
+    "",
+    ""
+  ],
+  [
+    "13",
+    "Confirm Control Testing",
+    "2.General User",
+    "read access",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)",
+    "Gap Analysis (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "3.Manager",
+    "Edit/remove/add",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "14",
+    "Perform Gap Analysis",
+    "2.General User",
+    "Edit/remove/add",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)",
+    "Gap Analysis (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "3.Manager",
+    "Edit/remove/add",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "15",
+    "Review Gap Analysis",
+    "2.General User",
+    "read access",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)",
+    "Gap Analysis (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "3.Manager",
+    "Edit/remove/add",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "16",
+    "Perform Passing Assessment",
+    "2.General User",
+    "Edit/remove/add",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)",
+    "Control Testing (platform level product)",
+    "Gap Analysis (platform level product)"
+  ],
+  [
+    "",
+    "",
+    "3.Manager",
+    "Edit/remove/add",
+    "company",
+    "project",
+    "Initial Request (platform level product)",
+    "Control Planning (platform level product)"
+  ],
+  [
+    "17",
+    "Close Projects",
+    "3.Manager",
+    "Edit/remove/add",
+    "project",
+    "",
+    "",
+    ""
+  ],
+  [
+    "",
+    "",
+    "2.General User",
+    "read access",
+    "project",
+    "",
+    "",
+    ""
+  ]
+]

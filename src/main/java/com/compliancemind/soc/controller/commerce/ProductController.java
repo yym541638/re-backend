@@ -104,42 +104,6 @@ public class ProductController {
     }
 
 
-//    /**
-//
-//     * 更新套餐价格（扩展接口，非 PRD 页面必需）。
-//
-//     * <p>PUT /product/package/{packageId}/price，需 JWT；管理员调整 Type1/Type2 定价。</p>
-//
-//     *
-//
-//     * @param packageId 套餐 ID
-//
-//     * @param request   Type1/Type2 价格及默认类型
-//
-//     * @return 更新后的套餐信息
-//
-//     */
-//
-//    @PutMapping("/package/{packageId}/price")
-//
-//    public ApiResponse<ProductPackageItem> updatePackagePrice(@PathVariable("packageId") Integer packageId,
-//
-//                                                              @Valid @RequestBody ProductPriceUpdateRequest request) {
-//
-//        return ApiResponse.success(productService.updatePackagePrice(
-//
-//                packageId,
-//
-//                request.getType1Price(),
-//
-//                request.getType2Price(),
-//
-//                request.getDefaultType()
-//
-//        ));
-//
-//    }
-
 }
 
 

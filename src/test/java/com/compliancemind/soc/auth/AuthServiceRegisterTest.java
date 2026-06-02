@@ -73,7 +73,8 @@ class AuthServiceRegisterTest {
         r.setPassword("Test@123456");
         r.setPhone("13800000000");
         r.setCompanyName("Demo Company");
-        r.setRoleCode("GENERAL_USER");
+        r.setUserType("Clients");
+        r.setPermissionCode("General User");
         return r;
     }
 
@@ -84,7 +85,8 @@ class AuthServiceRegisterTest {
         r.setPassword("Test@123456");
         r.setPhone("13800000000");
         r.setCompanyName("Demo Company");
-        r.setRoleCode("GENERAL_USER");
+        r.setUserType("Consultant");
+        r.setPermissionCode("General User");
         return r;
     }
 
@@ -145,6 +147,7 @@ class AuthServiceRegisterTest {
             UserAccount saved = cap.getValue();
             assertThat(saved.getCompanyId()).isEqualTo(2001);
             assertThat(saved.getPasswordHash()).isEqualTo("{bcrypt}x");
+            assertThat(saved.getUserType()).isEqualTo(SocConstants.Account.USER_TYPE_CLIENT);
             assertThat(saved.getStatus()).isEqualTo(SocConstants.Account.STATUS_ENABLED);
         }
 
@@ -174,9 +177,9 @@ class AuthServiceRegisterTest {
         }
 
         @Test
-        void register_role_alias_general_user_normalized() {
+        void register_permission_alias_general_user_normalized() {
             RegisterRequest req = altRequest();
-            req.setRoleCode("USER");
+            req.setPermissionCode("USER");
             when(userAccountMapper.countByEmail(any())).thenReturn(0L);
             when(userAccountMapper.countByPhone(any())).thenReturn(0L);
             Company existing = new Company();
@@ -192,6 +195,43 @@ class AuthServiceRegisterTest {
             LoginResponse res = authService.register(req);
 
             assertThat(res.getUser().getRoleCode()).isEqualTo(RoleCodes.GENERAL_USER);
+        }
+
+        @Test
+        void register_legacy_role_code_maps_to_permission_when_permission_missing() {
+            RegisterRequest req = altRequest();
+            req.setPermissionCode(null);
+            req.setRoleCode("GENERAL_USER");
+            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
+            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
+            Company existing = new Company();
+            existing.setCompanyId(1);
+            when(companyMapper.selectByName(any())).thenReturn(existing);
+            stubInsertUserReturnsId(1002);
+            when(passwordEncoder.encode(any())).thenReturn("h");
+            when(userProductMapper.countActiveByUserId(1002)).thenReturn(0L);
+            when(companyMapper.selectById(1)).thenReturn(existing);
+            when(jwtService.generateToken(1002, "George Yao", RoleCodes.GENERAL_USER)).thenReturn("t");
+
+            LoginResponse res = authService.register(req);
+
+            assertThat(res.getUser().getRoleCode()).isEqualTo(RoleCodes.GENERAL_USER);
+        }
+
+        @Test
+        void register_admin_rejected_when_company_already_has_admin() {
+            RegisterRequest req = altRequest();
+            req.setPermissionCode("Admin");
+            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
+            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
+            Company existing = new Company();
+            existing.setCompanyId(1);
+            when(companyMapper.selectByName(any())).thenReturn(existing);
+            when(userAccountMapper.countByCompanyIdAndRoleCode(1, RoleCodes.COMPANY_ADMIN)).thenReturn(1L);
+
+            assertThatThrownBy(() -> authService.register(req))
+                .isInstanceOf(BizException.class)
+                .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_COMPANY_ADMIN_EXISTS.getCode());
         }
 
         @Test
@@ -303,9 +343,9 @@ class AuthServiceRegisterTest {
         }
 
         @Test
-        void unsupported_company_role_project_owner() {
+        void unsupported_company_permission_project_owner() {
             RegisterRequest req = altRequest();
-            req.setRoleCode("PROJECT_OWNER");
+            req.setPermissionCode("PROJECT_OWNER");
 
             when(userAccountMapper.countByEmail(any())).thenReturn(0L);
             when(userAccountMapper.countByPhone(any())).thenReturn(0L);
@@ -316,6 +356,22 @@ class AuthServiceRegisterTest {
             assertThatThrownBy(() -> authService.register(req))
                 .isInstanceOf(BizException.class)
                 .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_UNSUPPORTED_USER_ROLE.getCode());
+        }
+
+        @Test
+        void user_type_required() {
+            RegisterRequest req = altRequest();
+            req.setUserType(null);
+
+            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
+            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
+            Company existing = new Company();
+            existing.setCompanyId(1);
+            when(companyMapper.selectByName(any())).thenReturn(existing);
+
+            assertThatThrownBy(() -> authService.register(req))
+                .isInstanceOf(BizException.class)
+                .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_USER_TYPE_REQUIRED.getCode());
         }
 
         @Test

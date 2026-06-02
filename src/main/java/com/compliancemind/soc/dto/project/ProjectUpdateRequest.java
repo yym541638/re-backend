@@ -21,11 +21,6 @@ public class ProjectUpdateRequest {
     @JsonAlias({"audit_type"})
     private String auditType;
 
-    @NotBlank(message = "项目状态不能为空")
-    private String status;
-
     @JsonAlias({"start_date"})
     private LocalDate startDate;
-    @JsonAlias({"end_date"})
-    private LocalDate endDate;
 }

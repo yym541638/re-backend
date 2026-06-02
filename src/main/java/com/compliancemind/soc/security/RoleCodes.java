@@ -1,5 +1,7 @@
 package com.compliancemind.soc.security;
 
+import com.compliancemind.soc.common.constants.SocConstants;
+
 import java.util.Locale;
 import java.util.Set;
 
@@ -32,7 +34,30 @@ public final class RoleCodes {
         PROJECT_OWNER
     );
 
+    private static final Set<String> USER_TYPES = Set.of(
+        SocConstants.Account.USER_TYPE_CLIENT,
+        SocConstants.Account.USER_TYPE_CONSULTANT,
+        SocConstants.Account.USER_TYPE_AUDITOR
+    );
+
     private RoleCodes() {
+    }
+
+    /**
+     * 注册页用户类型（Clients / Consultant / Auditor），与权限 role_code 独立。
+     */
+    public static String normalizeUserType(String userType) {
+        String normalized = normalizeToken(userType);
+        return switch (normalized) {
+            case "CLIENT", "CLIENTS" -> SocConstants.Account.USER_TYPE_CLIENT;
+            case "CONSULTANT", "CONSULTANTS" -> SocConstants.Account.USER_TYPE_CONSULTANT;
+            case "AUDITOR", "AUDITORS" -> SocConstants.Account.USER_TYPE_AUDITOR;
+            default -> normalized;
+        };
+    }
+
+    public static boolean isUserType(String userType) {
+        return USER_TYPES.contains(normalizeUserType(userType));
     }
 
     public static String normalizeCompanyRole(String roleCode) {
@@ -41,8 +66,8 @@ public final class RoleCodes {
             case "", "USER", "GENERALUSER", "GENERAL_USER" -> GENERAL_USER;
             case "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN", "ADMINISTRATOR" -> COMPANY_ADMIN;
             case "DOCUMENTOWNER", "DOCUMENT_OWNER" -> DOCUMENT_OWNER;
-            case "AUDITOR", "MANAGER" -> MANAGER;
-            case "MANAGER2", "MANAGER_2" -> MANAGER_2;
+            case "MANAGER", "MANAGERTIER1", "MANAGER_TIER1", "MANAGER_TIER_1" -> MANAGER;
+            case "MANAGER2", "MANAGER_2", "MANAGERTIER2", "MANAGER_TIER2", "MANAGER_TIER_2" -> MANAGER_2;
             default -> normalized;
         };
     }
@@ -51,6 +76,20 @@ public final class RoleCodes {
         String normalized = normalizeCompanyRole(roleCode);
         if ("PROJECTOWNER".equals(normalized) || "PROJECT_OWNER".equals(normalized)) {
             return PROJECT_OWNER;
+        }
+        if ("ADMINISTRATOR".equals(normalized)) {
+            return COMPANY_ADMIN;
+        }
+        if ("1ST_TIER_MANAGER_USER".equals(normalized)
+            || "FIRST_TIER_MANAGER_USER".equals(normalized)
+            || "MANAGER_TIER_1".equals(normalized)) {
+            return MANAGER;
+        }
+        if ("2ND_TIER_MANAGER_USER".equals(normalized)
+            || "2ND_TIER_MANAGER_USER_1".equals(normalized)
+            || "SECOND_TIER_MANAGER_USER".equals(normalized)
+            || "MANAGER_TIER_2".equals(normalized)) {
+            return MANAGER_2;
         }
         return normalized.isBlank() ? GENERAL_USER : normalized;
     }

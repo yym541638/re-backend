@@ -38,12 +38,12 @@ class AuthRegisterSliceTest {
 
     private static final String LEGACY_BODY = """
         {"firstName":"George","lastName":"Yao","email":"test@test.com","password":"Test@123456",\
-        "phone":"13800000000","companyName":"Demo Company","role":"GENERAL_USER"}\
+        "phone":"13800000000","companyName":"Demo Company","userType":"Clients","permissions":"General User"}\
         """;
 
     private static final String ALT_BODY = """
         {"displayName":"George Yao","email":"test@test.com","password":"Test@123456",\
-        "phone":"13800000000","companyName":"Demo Company","roleCode":"GENERAL_USER"}\
+        "phone":"13800000000","companyName":"Demo Company","userType":"Consultant","permissionCode":"GENERAL_USER"}\
         """;
 
     @Mock
@@ -117,7 +117,7 @@ class AuthRegisterSliceTest {
 
         String body = """
             {"displayName":"George Yao","email":"new@test.com","password":"Test@123456",\
-            "phone":"13900000000","companyName":"Demo Company","roleCode":"GENERAL_USER",\
+            "phone":"13900000000","companyName":"Demo Company","userType":"Auditor","permissionCode":"GENERAL_USER",\
             "invitation_code":"INV-1"}\
             """;
 
@@ -194,6 +194,7 @@ class AuthRegisterSliceTest {
         u.setPhone("13800000000");
         u.setAvatarUrl("");
         u.setJobTitle("");
+        u.setUserType("CLIENT");
         u.setRoleCode("GENERAL_USER");
         r.setUser(u);
         return r;

@@ -1,0 +1,1746 @@
+[
+  {
+    "sheet": "qestion tracker",
+    "non_empty_rows": 6,
+    "sample_rows": [
+      [
+        "",
+        "Questions",
+        "Comments",
+        "Responses",
+        "Status",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "1",
+        "知识库更新-\n1. AI知识库数据采取方式-\n             目前知识库存取位置在“***“table？\n             未来会放在哪里?\n2. SOC 2 产品提取方式\n             目前有分成3种：\n              A. AICPA模板更新-后端table- RCM Risk Table有对应的数据字段和数据格式， 其中部分字段会推送至其他产品数据，如point of view 会推送至request list \n              B. Request list 模板更新 - 后端table - Request - Request Individual\n              C.Control 模板更新 - RCM - Control Table_AI, 有对应的数据字段和数据格式\n3 是否可以结合1和2 在一个后台模板更新方式?\n4 是否需要分割更多AI 知识库?",
+        "@y麻烦看一眼,@黼生",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "2",
+        "云平台部署 - 加速AI模型运行数据",
+        "@yjq@xi",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "3",
+        "AI Capabilities -",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "4",
+        "后端->AI读取->AI分析->后端解析字符段->生产结果\n例子“城西现在在东北部吃超冷面，现在没有钱，饭店不让他回家“ -》 谁 城西，干嘛- “吃超冷面”，“没有钱”， 风险“不让他回家”",
+        "@yjq@黼生麻烦确认AI生成后字段和产品字段读取逻辑",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "5",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "Entity Access  Structure ",
+    "non_empty_rows": 40,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "Company",
+        "Project",
+        "Initial Request (platform level product)",
+        "RCM (platform level product)",
+        "Control Planning (platform level product)",
+        "Control Testing (platform level product)",
+        "Gap Analysis (platform level product)",
+        "Passing Assessment (platform level product)",
+        "Audit Report Generation (platform level product)"
+      ],
+      [
+        "Level1  - Product",
+        "SOC 2/Hippa/ISO",
+        "Y",
+        "Y",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "Level 2 - Module",
+        "Secure/Availability/...",
+        "Y",
+        "Y",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "Level 3 - Year",
+        "2025/2026...",
+        "Y",
+        "Y",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "level 4 - Risk",
+        "CC.1....",
+        "Y",
+        "Y",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "Process direction",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "Consulting Side",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "Process",
+        "Roles",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "1",
+        "Create company login",
+        "Comp Admin",
+        "manages",
+        "Level 1-L4 Product, module, Year, risk",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "2",
+        "Access to company site login",
+        "Comp Admin",
+        "manages",
+        "All users within the company dimension",
+        "All users within the project dimension",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "Company Page",
+    "non_empty_rows": 46,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "User Access",
+        "",
+        "Data source",
+        "",
+        "Data format",
+        "Template"
+      ],
+      [
+        "1",
+        "Company ID",
+        "Comp Admin",
+        "read access",
+        "Self-generation",
+        "",
+        "Varchar",
+        "Comp1111111"
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "2",
+        "Company Name",
+        "Comp Admin",
+        "read access",
+        "Customer Input during registration",
+        "",
+        "Varchar",
+        ""
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "Project Levels",
+    "non_empty_rows": 40,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "User Access",
+        "",
+        "Data source"
+      ],
+      [
+        "1",
+        "Project ID",
+        "Comp Admin",
+        "read access",
+        "Self-generation"
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        ""
+      ],
+      [
+        "",
+        "",
+        "Project owner",
+        "",
+        ""
+      ],
+      [
+        "2",
+        "Project name",
+        "Comp Admin",
+        "All",
+        "manual input"
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "User Invitation ",
+    "non_empty_rows": 20,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "User Access",
+        "",
+        "Data source",
+        "Data format",
+        "Template",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "User Invitation ID",
+        "Comp Admin",
+        "read access",
+        "Self-generation",
+        "Varchar",
+        "Inv000000",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "Inviation Content",
+        "Comp Admin",
+        "All",
+        "Edit Template ( see below)",
+        "Varchar",
+        "see below",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "All",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "All",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "User Management page",
+    "non_empty_rows": 24,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "User Access",
+        "",
+        "Data source",
+        "Data format",
+        "Template"
+      ],
+      [
+        "",
+        "UserID",
+        "Comp Admin",
+        "read access",
+        "Self-generation",
+        "Varchar",
+        "User000000"
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "Username",
+        "Comp Admin",
+        "All",
+        "Manual Input",
+        "Varchar",
+        ""
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "Product Selection",
+    "non_empty_rows": 24,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "User Access",
+        "",
+        "Data source",
+        "Data format",
+        "Template"
+      ],
+      [
+        "",
+        "ProductID",
+        "Comp Admin",
+        "read access",
+        "Self-generation",
+        "Varchar",
+        "Prod000000"
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "ProductName",
+        "Comp Admin",
+        "read access",
+        "SOC 2, Hippa",
+        "Varchar",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "ProductSelection",
+        "Comp Admin",
+        "All",
+        "manual select",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "Request - Request Master ",
+    "non_empty_rows": 30,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "",
+        "All follow the same product",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "Request",
+        "",
+        "Project Creation",
+        "->",
+        "Request Creation",
+        "Request Master",
+        "Request ID",
+        "Initial Request List (AI Generation)"
+      ],
+      [
+        "班",
+        "RequestMasterID",
+        "User Access",
+        "",
+        "Data source",
+        "Data format",
+        "Template",
+        "Comment",
+        ""
+      ],
+      [
+        "",
+        "",
+        "Comp Admin",
+        "read access",
+        "Self-generation",
+        "Varchar",
+        "ReqM000000",
+        "This if for Request Master not individual request",
+        ""
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "5.RequestAIInitContentAcct",
+        "read access",
+        "system account",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "6.AIEvidenceReviewAcc",
+        "read access",
+        "system account",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "Request - Request Individual",
+    "non_empty_rows": 109,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "User Access",
+        "",
+        "Data source"
+      ],
+      [
+        "人",
+        "RequestID",
+        "Comp Admin",
+        "read access",
+        "Self-generation"
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        ""
+      ],
+      [
+        "",
+        "",
+        "5.RequestAIInitContentAcct",
+        "read access",
+        ""
+      ],
+      [
+        "",
+        "",
+        "6.AIEvidenceReviewAcc",
+        "read access",
+        "system account"
+      ],
+      [
+        "",
+        "RequestName",
+        "Comp Admin",
+        "all",
+        "Manual Input"
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "RCM KeyFields",
+    "non_empty_rows": 48,
+    "sample_rows": [
+      [
+        "RCM (platform level product)",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "L2",
+        "Cycle",
+        "Risk",
+        "Control"
+      ],
+      [
+        "",
+        "",
+        "L3",
+        "Cycle",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "Cycle",
+        "Control UID"
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "Modules",
+        "Control Title"
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "Risks -  (CC.01)",
+        "Control Reference"
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "Sub-risk (Next level down)",
+        "Control Description"
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "Risk Level (high-med-low)",
+        "Control Test Procedures"
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "Additional Risk Profile Description",
+        "Control Performer"
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Control Reviewer"
+      ]
+    ]
+  },
+  {
+    "sheet": "RCM - Risk Table",
+    "non_empty_rows": 89,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "User Access",
+        ""
+      ],
+      [
+        "",
+        "CC_criteria_ID",
+        "Comp Admin",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "5.RequestAIInitContentAcct",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "6.AIEvidenceReviewAcc",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "7.RiskTableManager",
+        "read access"
+      ],
+      [
+        "",
+        "Cycle_Name",
+        "Comp Admin",
+        "read access"
+      ]
+    ]
+  },
+  {
+    "sheet": "RCM - Control Table_User",
+    "non_empty_rows": 577,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "",
+        "User Access",
+        "Data source",
+        "Data format",
+        "Template",
+        ""
+      ],
+      [
+        "",
+        "ControlID_Control Table_User",
+        "Comp Admin",
+        "read access",
+        "Self-generation",
+        "Varchar",
+        "ControlID000000",
+        ""
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "5.RequestAIInitContentAcct",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "6.AIEvidenceReviewAcc",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "7.RiskTableManager",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "8.ControlContentManager",
+        "read access",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "RCM - Control Table_AI",
+    "non_empty_rows": 68,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "",
+        "User Access"
+      ],
+      [
+        "",
+        "ControlID_AI_Control Table",
+        "Comp Admin",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "5.RequestAIInitContentAcct",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "6.AIEvidenceReviewAcc",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "7.RiskTableManager",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "8.ControlContentManager",
+        "No access"
+      ]
+    ]
+  },
+  {
+    "sheet": "RCM - Control Table_Final",
+    "non_empty_rows": 31,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "",
+        "User Access",
+        "Data source",
+        "Data format",
+        "Template",
+        "",
+        "Comment",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "ControlID",
+        "Comp Admin",
+        "read access",
+        "Self-generation",
+        "Varchar",
+        "ControlID000000",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "5.RequestAIInitContentAcct",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "6.AIEvidenceReviewAcc",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "7.RiskTableManager",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "8.ControlTableManager",
+        "read access",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "sheet": "RCM - Performer",
+    "non_empty_rows": 71,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "",
+        "User Access"
+      ],
+      [
+        "",
+        "PerformerID",
+        "Comp Admin",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "5.RequestAIInitContentAcct",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "6.AIEvidenceReviewAcc",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "7.RiskTableManager",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "8.ControlContentManager",
+        "read access"
+      ]
+    ]
+  },
+  {
+    "sheet": "RCM - Gap Analysis",
+    "non_empty_rows": 135,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "",
+        "User Access"
+      ],
+      [
+        "",
+        "Issue_ID",
+        "Comp Admin",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "1.Document owner",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "2.General User",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "3.Manager",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "4.Manager 2",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "5.RequestAIInitContentAcct",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "6.AIEvidenceReviewAcc",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "7.RiskTableManager",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "8.ControlContentManager",
+        "read access"
+      ]
+    ]
+  },
+  {
+    "sheet": "Audit Planning",
+    "non_empty_rows": 31,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "",
+        "",
+        "User Access"
+      ],
+      [
+        "",
+        "",
+        "Timeline (Gantt Chart)",
+        "Comp Admin",
+        "all"
+      ],
+      [
+        "",
+        "",
+        "",
+        "1.Document owner",
+        "No access"
+      ],
+      [
+        "",
+        "",
+        "",
+        "2.General User",
+        "all"
+      ],
+      [
+        "",
+        "",
+        "",
+        "3.Manager",
+        "all"
+      ],
+      [
+        "",
+        "",
+        "",
+        "4.Manager 2",
+        "all"
+      ],
+      [
+        "",
+        "",
+        "",
+        "5.RequestAIInitContentAcct",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "",
+        "6.AIEvidenceReviewAcc",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "",
+        "7.RiskTableManager",
+        "read access"
+      ],
+      [
+        "",
+        "",
+        "",
+        "8.ControlContentManager",
+        "read access"
+      ]
+    ]
+  },
+  {
+    "sheet": "Control Testing ",
+    "non_empty_rows": 0,
+    "sample_rows": []
+  },
+  {
+    "sheet": "工作表1",
+    "non_empty_rows": 0,
+    "sample_rows": []
+  },
+  {
+    "sheet": "Draft",
+    "non_empty_rows": 20,
+    "sample_rows": [
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "AI Initial Request Generation",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "MasterQuest",
+        "2025 Initial Request",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Request ID",
+        "Request Description",
+        "CC.",
+        "Due date"
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "1",
+        "qi 焊机",
+        "安全",
+        "2026-01-15 00:00:00"
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "2",
+        "",
+        "CC.1",
+        ""
+      ],
+      [
+        "",
+        "",
+        "ai updates",
+        "",
+        "data table",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "initial content",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "Request ID",
+        "Request Description",
+        "CC.",
+        "write",
+        "AI"
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "xx",
+        "xx",
+        "xx",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "5.RequestAIInitContentAcct",
+        "",
+        "",
+        "",
+        "",
+        "export",
+        "to"
+      ]
+    ]
+  }
+]

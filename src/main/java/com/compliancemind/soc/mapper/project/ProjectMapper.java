@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /** {@code soc_project} 合规项目。 */
@@ -75,14 +76,26 @@ public interface ProjectMapper {
         set project_name = #{projectName},
             compliance_type = #{complianceType},
             audit_type = #{auditType},
-            status = #{status},
             start_date = #{startDate},
-            end_date = #{endDate},
             updated_by = #{updatedBy},
             updated_at = now()
         where project_id = #{projectId} and deleted = 0
         """)
     int update(Project project);
+
+    @Update("""
+        update soc_project
+        set status = #{status},
+            end_date = #{endDate},
+            updated_by = #{updatedBy},
+            updated_at = now()
+        where project_id = #{projectId} and deleted = 0 and status = #{previousStatus}
+        """)
+    int updateStatusAndEndDate(@Param("projectId") Long projectId,
+                               @Param("status") String status,
+                               @Param("endDate") LocalDate endDate,
+                               @Param("updatedBy") Integer updatedBy,
+                               @Param("previousStatus") String previousStatus);
 
     @Update("""
         update soc_project

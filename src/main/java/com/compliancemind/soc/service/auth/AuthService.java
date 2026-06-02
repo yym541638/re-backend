@@ -103,9 +103,10 @@ public class AuthService {
         userAccount.setEmail(request.getEmail().trim());
         userAccount.setPhone(request.getPhone().trim());
         userAccount.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        //userAccount.setRoleCode(normalizeRole(request.getRoleCode()));
-        //todo 角色就真的只是角色，权限是在permissions给的？？？
-        userAccount.setRoleCode(request.getRoleCode());
+        userAccount.setUserType(resolveUserType(request));
+        String permissionCode = resolvePermissionCode(request);
+        ensureCompanyAdminAssignable(company.getCompanyId(), permissionCode);
+        userAccount.setRoleCode(permissionCode);
         userAccount.setStatus(SocConstants.Account.STATUS_ENABLED);
         userAccountMapper.insert(userAccount);
         // 注册时若填写了邀请码，消费邀请码并将用户加入对应项目
@@ -167,18 +168,48 @@ public class AuthService {
         userInfo.setPhone(userAccount.getPhone());
         userInfo.setAvatarUrl(userAccount.getAvatarUrl());
         userInfo.setJobTitle(userAccount.getJobTitle());
-        // 归一化后的角色，序列化为 user_info.role
+        userInfo.setUserType(userAccount.getUserType() == null || userAccount.getUserType().isBlank()
+            ? SocConstants.Account.USER_TYPE_CLIENT
+            : RoleCodes.normalizeUserType(userAccount.getUserType()));
+        // 归一化后的权限，序列化为 user_info.role
         userInfo.setRoleCode(roleCode);
         response.setUser(userInfo);
         return response;
     }
 
-    private String normalizeRole(String roleCode) {
-        String normalized = RoleCodes.normalizeCompanyRole(roleCode);
+    private String resolveUserType(RegisterRequest request) {
+        if (request.getUserType() != null && !request.getUserType().isBlank()) {
+            String normalized = RoleCodes.normalizeUserType(request.getUserType());
+            if (!RoleCodes.isUserType(normalized)) {
+                throw new BizException(BizErrorCode.AUTH_UNSUPPORTED_USER_TYPE);
+            }
+            return normalized;
+        }
+        throw new BizException(BizErrorCode.AUTH_USER_TYPE_REQUIRED);
+    }
+
+    private String resolvePermissionCode(RegisterRequest request) {
+        String raw = request.getPermissionCode();
+        if (raw == null || raw.isBlank()) {
+            raw = request.getRoleCode();
+        }
+        if (raw == null || raw.isBlank()) {
+            throw new BizException(BizErrorCode.AUTH_PERMISSION_REQUIRED);
+        }
+        String normalized = RoleCodes.normalizeCompanyRole(raw);
         if (!RoleCodes.isCompanyRole(normalized)) {
             throw new BizException(BizErrorCode.AUTH_UNSUPPORTED_USER_ROLE);
         }
         return normalized;
+    }
+
+    private void ensureCompanyAdminAssignable(Integer companyId, String permissionCode) {
+        if (!RoleCodes.COMPANY_ADMIN.equals(permissionCode)) {
+            return;
+        }
+        if (userAccountMapper.countByCompanyIdAndRoleCode(companyId, RoleCodes.COMPANY_ADMIN) > 0) {
+            throw new BizException(BizErrorCode.AUTH_COMPANY_ADMIN_EXISTS);
+        }
     }
 
     private String resolveDisplayName(RegisterRequest request) {

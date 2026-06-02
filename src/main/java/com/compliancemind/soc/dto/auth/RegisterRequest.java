@@ -28,8 +28,22 @@ public class RegisterRequest {
     @NotBlank(message = "公司名称不能为空")
     private String companyName;
 
-    @JsonAlias({"role"})
-    @NotBlank(message = "角色不能为空")
+    /**
+     * 用户类型（注册页 Role 下拉）：Clients / Consultant / Auditor。
+     */
+    @JsonAlias({"user_type", "userType"})
+    private String userType;
+
+    /**
+     * 公司权限（注册页 Permissions 下拉）：Admin / Document Owner / General User / Manager tier1 / Manager tier2。
+     */
+    @JsonAlias({"permissions", "permission", "permissionCode"})
+    private String permissionCode;
+
+    /**
+     * 兼容旧版请求：曾用 role / roleCode 传权限编码。
+     */
+    @JsonAlias({"role", "roleCode"})
     private String roleCode;
 
     @JsonAlias({"invitationCode", "invitation_code"})

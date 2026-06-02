@@ -12,7 +12,7 @@ import org.apache.ibatis.annotations.Select;
 public interface UserAccountMapper {
 
     @Select("""
-        select user_id, company_id, display_name, email, phone, avatar_url, job_title, password_hash, role_code, status, created_at, updated_at
+        select user_id, company_id, display_name, email, phone, avatar_url, job_title, user_type, password_hash, role_code, status, created_at, updated_at
         from sys_user
         where (email = #{account} or phone = #{account}) and deleted = 0
         limit 1
@@ -20,11 +20,18 @@ public interface UserAccountMapper {
     UserAccount selectByAccount(@Param("account") String account);
 
     @Select("""
-        select user_id, company_id, display_name, email, phone, avatar_url, job_title, password_hash, role_code, status, created_at, updated_at
+        select user_id, company_id, display_name, email, phone, avatar_url, job_title, user_type, password_hash, role_code, status, created_at, updated_at
         from sys_user
         where user_id = #{userId} and deleted = 0
         """)
     UserAccount selectById(@Param("userId") Integer userId);
+
+    @Select("""
+        select user_id, company_id, display_name, email, phone, avatar_url, job_title, user_type, password_hash, role_code, status, created_at, updated_at
+        from sys_user
+        where user_id = #{userId} and company_id = #{companyId} and deleted = 0
+        """)
+    UserAccount selectByIdAndCompanyId(@Param("userId") Integer userId, @Param("companyId") Integer companyId);
 
     @Select("select count(1) from sys_user where email = #{email} and deleted = 0")
     long countByEmail(@Param("email") String email);
@@ -33,8 +40,15 @@ public interface UserAccountMapper {
     long countByPhone(@Param("phone") String phone);
 
     @Select("""
+        select count(1) from sys_user
+        where company_id = #{companyId} and role_code = #{roleCode} and deleted = 0
+        """)
+    long countByCompanyIdAndRoleCode(@Param("companyId") Integer companyId,
+                                     @Param("roleCode") String roleCode);
+
+    @Select("""
         <script>
-        select user_id, company_id, display_name, email, phone, avatar_url, job_title, password_hash, role_code, status, created_at, updated_at
+        select user_id, company_id, display_name, email, phone, avatar_url, job_title, user_type, password_hash, role_code, status, created_at, updated_at
         from sys_user
         where deleted = 0 and company_id = #{companyId}
         <if test='keyword != null and keyword != ""'>
@@ -47,8 +61,8 @@ public interface UserAccountMapper {
                                           @Param("keyword") String keyword);
 
     @Insert("""
-        insert into sys_user(company_id, display_name, email, phone, avatar_url, job_title, password_hash, role_code, status, deleted, created_at, updated_at)
-        values(#{companyId}, #{displayName}, #{email}, #{phone}, #{avatarUrl}, #{jobTitle}, #{passwordHash}, #{roleCode}, #{status}, 0, now(), now())
+        insert into sys_user(company_id, display_name, email, phone, avatar_url, job_title, user_type, password_hash, role_code, status, deleted, created_at, updated_at)
+        values(#{companyId}, #{displayName}, #{email}, #{phone}, #{avatarUrl}, #{jobTitle}, #{userType}, #{passwordHash}, #{roleCode}, #{status}, 0, now(), now())
         """)
     @Options(useGeneratedKeys = true, keyProperty = "userId")
     int insert(UserAccount userAccount);
