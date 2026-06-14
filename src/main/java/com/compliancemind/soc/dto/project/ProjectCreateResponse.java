@@ -12,5 +12,6 @@ public class ProjectCreateResponse {
 
     private Project project;
     private List<ProjectMember> members;
+    private List<ProjectRoleSlotItem> roleSlots;
     private List<ProjectAttachment> attachments;
 }

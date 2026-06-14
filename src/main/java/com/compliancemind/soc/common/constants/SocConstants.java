@@ -103,12 +103,6 @@ public final class SocConstants {
     /** Account entity numeric flags. */
     public static final class Account {
         public static final int STATUS_ENABLED = 1;
-        /** 注册页用户类型：Clients。 */
-        public static final String USER_TYPE_CLIENT = "CLIENT";
-        /** 注册页用户类型：Consultant。 */
-        public static final String USER_TYPE_CONSULTANT = "CONSULTANT";
-        /** 注册页用户类型：Auditor。 */
-        public static final String USER_TYPE_AUDITOR = "AUDITOR";
     }
 
     /** SOC audit type normalization (internal vs persisted display). */
@@ -204,6 +198,27 @@ public final class SocConstants {
         public static final String DOCUMENT_STATUS_PENDING = "PENDING";
     }
 
+    /** Request Master (PRD 2.5.2). */
+    public static final class RequestMaster {
+        public static final String CODE_PREFIX = "ReqM";
+        public static final String STATUS_INACTIVE = "INACTIVE";
+        public static final String STATUS_ACTIVE = "ACTIVE";
+        public static final String STATUS_COMPLETED = "COMPLETED";
+        public static final String STATUS_CANCELLED = "CANCELLED";
+    }
+
+    /** Request Individual（PRD 2.5.3）。 */
+    public static final class RequestIndividual {
+        public static final String CODE_PREFIX = "REQ";
+        public static final String AI_REVIEW_PENDING = "PENDING";
+        public static final String AI_REVIEW_RED = "RED";
+        public static final String AI_REVIEW_YELLOW = "YELLOW";
+        public static final String AI_REVIEW_GREEN = "GREEN";
+        public static final String EVIDENCE_STATUS_PENDING = "PENDING";
+        public static final String EVIDENCE_STATUS_UPLOADED = "UPLOADED";
+        public static final String EVIDENCE_STATUS_REVIEWED = "REVIEWED";
+    }
+
     /** Gap analysis rows. */
     public static final class GapAnalysis {
         public static final String STATUS_OPEN = "OPEN";
@@ -229,6 +244,7 @@ public final class SocConstants {
     /** File storage layout & allowed uploads. */
     public static final class Storage {
         public static final String REQUEST_PATH_PREFIX = "request/";
+        public static final String REQUEST_MASTER_TEMPLATE_PATH_PREFIX = "request-master/template/";
         public static final String PROJECT_PATH_PREFIX = "project/";
         public static final String EXT_PDF = ".pdf";
         public static final String EXT_DOC = ".doc";
@@ -267,6 +283,7 @@ public final class SocConstants {
             public static final String PROFILE = "PROFILE";
             public static final String PROJECT = "PROJECT";
             public static final String REQUEST = "REQUEST";
+            public static final String REQUEST_MASTER = "REQUEST_MASTER";
             public static final String RCM = "RCM";
             public static final String CONTROL_TEST = "CONTROL_TEST";
             public static final String INVITATION_CODE = "INVITATION_CODE";
@@ -300,6 +317,7 @@ public final class SocConstants {
             public static final String ORDER = "ORDER";
             public static final String PROJECT = "PROJECT";
             public static final String REQUEST = "REQUEST";
+            public static final String REQUEST_MASTER = "REQUEST_MASTER";
             public static final String RCM = "RCM";
             public static final String CONTROL_TEST = "CONTROL_TEST";
             public static final String INVITATION_CODE = "INVITATION_CODE";
@@ -328,6 +346,9 @@ public final class SocConstants {
             public static final String REQUEST_CREATE_EN = "Create request";
             public static final String REQUEST_UPDATE_EN = "Update request";
             public static final String REQUEST_DELETE_EN = "Delete request";
+            public static final String REQUEST_MASTER_CREATE_EN = "Create request master";
+            public static final String REQUEST_MASTER_UPDATE_EN = "Update request master";
+            public static final String REQUEST_MASTER_DELETE_EN = "Delete request master";
             public static final String CONTROL_TEST_CREATE_EN = "Create control test";
             public static final String CONTROL_TEST_UPDATE_EN = "Update control test";
             public static final String CONTROL_TEST_DELETE_EN = "Delete control test";

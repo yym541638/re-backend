@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS `soc_operation_log`;
 DROP TABLE IF EXISTS `soc_request_attachment`;
 DROP TABLE IF EXISTS `soc_request_version`;
 DROP TABLE IF EXISTS `soc_request`;
+DROP TABLE IF EXISTS `soc_request_master`;
 DROP TABLE IF EXISTS `soc_project_member`;
 DROP TABLE IF EXISTS `soc_project`;
 DROP TABLE IF EXISTS `sys_user`;
@@ -170,13 +171,14 @@ CREATE TABLE `soc_project` (
   `company_id` int unsigned NOT NULL,
   `project_code` varchar(50) NOT NULL,
   `project_name` varchar(120) NOT NULL,
+  `project_info` text DEFAULT NULL COMMENT '项目描述',
   `compliance_type` varchar(40) NOT NULL COMMENT '如 SOC2 / ISO27001',
   `audit_type` varchar(40) NOT NULL COMMENT '如 TYPE1 / TYPE2',
   `current_version` varchar(20) NOT NULL DEFAULT 'V1',
   `gap_count` int NOT NULL DEFAULT 0,
   `status` varchar(40) NOT NULL DEFAULT 'IN_PROGRESS',
-  `start_date` date DEFAULT NULL,
-  `end_date` date DEFAULT NULL,
+  `start_date` datetime DEFAULT NULL COMMENT '项目开始时间',
+  `end_date` datetime DEFAULT NULL COMMENT '项目结束时间',
   `deleted` tinyint NOT NULL DEFAULT 0,
   `created_by` int unsigned NOT NULL,
   `updated_by` int unsigned NOT NULL,
@@ -222,18 +224,45 @@ CREATE TABLE `soc_project_attachment` (
   CONSTRAINT `fk_project_attachment_project` FOREIGN KEY (`project_id`) REFERENCES `soc_project` (`project_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='项目附件表';
 
+CREATE TABLE `soc_request_master` (
+  `request_master_id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `project_id` bigint unsigned NOT NULL,
+  `request_master_code` varchar(50) NOT NULL,
+  `request_master_name` varchar(200) NOT NULL,
+  `status` varchar(40) NOT NULL DEFAULT 'INACTIVE',
+  `current_version_id` bigint unsigned DEFAULT NULL,
+  `deleted` tinyint NOT NULL DEFAULT 0,
+  `created_by` int unsigned NOT NULL,
+  `updated_by` int unsigned NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`request_master_id`),
+  UNIQUE KEY `uk_request_master_code` (`request_master_code`),
+  KEY `idx_request_master_project` (`project_id`),
+  KEY `idx_request_master_status` (`status`),
+  CONSTRAINT `fk_request_master_project` FOREIGN KEY (`project_id`) REFERENCES `soc_project` (`project_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Request Master 表';
+
 CREATE TABLE `soc_request` (
   `request_id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `project_id` bigint unsigned NOT NULL,
+  `request_master_id` bigint unsigned DEFAULT NULL,
   `request_code` varchar(50) NOT NULL,
   `cc_criteria` varchar(80) NOT NULL,
   `title` varchar(200) NOT NULL,
   `request_description` text,
   `points_of_focus` text,
   `document_status` varchar(40) NOT NULL DEFAULT 'PENDING',
+  `evidence_manual_status` varchar(40) NOT NULL DEFAULT 'PENDING',
   `document_owner` varchar(120) DEFAULT NULL,
+  `request_assignee` varchar(120) DEFAULT NULL,
+  `document_owner_user_id` int unsigned DEFAULT NULL,
   `implementation_date` date DEFAULT NULL,
   `last_update_at` datetime DEFAULT NULL,
+  `request_send_date` datetime DEFAULT NULL,
+  `ai_review_status` varchar(20) NOT NULL DEFAULT 'PENDING',
+  `ai_review_comment` text,
+  `user_comment` text,
   `notes` text,
   `requestor` varchar(120) DEFAULT NULL,
   `comments` text,
@@ -246,9 +275,11 @@ CREATE TABLE `soc_request` (
   PRIMARY KEY (`request_id`),
   UNIQUE KEY `uk_request_code` (`request_code`),
   KEY `idx_request_project` (`project_id`),
+  KEY `idx_request_master` (`request_master_id`),
   KEY `idx_request_status` (`document_status`),
-  CONSTRAINT `fk_request_project` FOREIGN KEY (`project_id`) REFERENCES `soc_project` (`project_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='项目请求表';
+  CONSTRAINT `fk_request_project` FOREIGN KEY (`project_id`) REFERENCES `soc_project` (`project_id`),
+  CONSTRAINT `fk_request_master` FOREIGN KEY (`request_master_id`) REFERENCES `soc_request_master` (`request_master_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Request Individual 表';
 
 CREATE TABLE `soc_request_version` (
   `version_id` bigint unsigned NOT NULL AUTO_INCREMENT,

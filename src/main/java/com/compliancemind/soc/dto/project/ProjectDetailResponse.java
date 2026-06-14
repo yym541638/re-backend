@@ -11,5 +11,7 @@ public class ProjectDetailResponse {
 
     private Project project;
     private List<ProjectMember> members;
+    /** Project User management 六个固定角色槽位（含已分配用户）。 */
+    private List<ProjectRoleSlotItem> roleSlots;
 }
 

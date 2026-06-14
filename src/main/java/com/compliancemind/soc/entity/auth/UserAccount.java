@@ -24,8 +24,6 @@ public class UserAccount {
     private String jobTitle;
     /** 密码哈希值。 */
     private String passwordHash;
-    /** 用户类型（CLIENT / CONSULTANT / AUDITOR）。 */
-    private String userType;
     /** 公司权限代码（如 GENERAL_USER、COMP_ADMIN）。 */
     private String roleCode;
     /** 账号状态（1=启用，0=禁用）。 */

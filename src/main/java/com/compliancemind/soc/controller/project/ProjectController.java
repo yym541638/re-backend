@@ -1,14 +1,16 @@
 package com.compliancemind.soc.controller.project;
 
 import com.compliancemind.soc.common.api.ApiResponse;
+import com.compliancemind.soc.common.api.PageResponse;
 import com.compliancemind.soc.dto.project.ProjectCompanyUserItem;
 import com.compliancemind.soc.dto.project.ProjectCreateRequest;
 import com.compliancemind.soc.dto.project.ProjectCreateResponse;
 import com.compliancemind.soc.dto.project.ProjectDetailResponse;
+import com.compliancemind.soc.dto.project.ProjectListItem;
 import com.compliancemind.soc.dto.project.ProjectMemberSaveRequest;
 import com.compliancemind.soc.dto.project.ProjectQueryRequest;
+import com.compliancemind.soc.dto.project.ProjectRoleSlotItem;
 import com.compliancemind.soc.dto.project.ProjectUpdateRequest;
-import com.compliancemind.soc.entity.project.Project;
 import com.compliancemind.soc.entity.project.ProjectMember;
 import com.compliancemind.soc.service.project.ProjectService;
 import jakarta.validation.Valid;
@@ -21,11 +23,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -47,33 +46,40 @@ public class ProjectController {
      * 新建项目（JSON）。
      *
      * <p>POST /project/create，需 JWT；仅公司管理员可创建。
-     * 请求体含项目基本信息及 {@code members} 项目维度角色分配（从本公司用户选取）。</p>
+     * 请求体含项目基本信息及 {@code members} 项目维度角色分配（六个固定角色可部分填写）。</p>
      */
-//    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE)
-//    public ApiResponse<ProjectCreateResponse> create(@Valid @RequestBody ProjectCreateRequest request) {
-//        return ApiResponse.success(projectService.create(request, Collections.emptyList()));
-//    }
-
-    /**
-     * 新建项目（含文件上传）。
-     *
-     * <p>POST /project/create，Content-Type: multipart/form-data。
-     * part {@code project} 为 JSON（同 JSON 接口）；part {@code file} 可选，支持 pdf/word/excel。</p>
-     */
-    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<ProjectCreateResponse> createWithFiles(@RequestPart("project") @Valid ProjectCreateRequest request,
-                                                              @RequestPart(value = "file", required = false) MultipartFile file) {
-        List<MultipartFile> files = file == null ? Collections.emptyList() : List.of(file);
-        return ApiResponse.success(projectService.create(request, files));
+    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ApiResponse<ProjectCreateResponse> create(@Valid @RequestBody ProjectCreateRequest request) {
+        return ApiResponse.success(projectService.create(request));
     }
 
+    /**
+     * 项目列表（分页）。
+     *
+     * <p>GET /project/list，返回 UI 表格列：project_id、project_name、project_info、
+     * start_date、end_date、last_modified_date。</p>
+     */
     @GetMapping("/list")
-    public ApiResponse<List<Project>> list(@RequestParam(value = "keyword", required = false) String keyword,
-                                           @RequestParam(value = "status", required = false) String status) {
+    public ApiResponse<PageResponse<ProjectListItem>> list(@RequestParam(value = "keyword", required = false) String keyword,
+                                                           @RequestParam(value = "status", required = false) String status,
+                                                           @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+                                                           @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         ProjectQueryRequest request = new ProjectQueryRequest();
         request.setKeyword(keyword);
         request.setStatus(status);
-        return ApiResponse.success(projectService.list(request));
+        request.setPageNum(pageNum);
+        request.setPageSize(pageSize);
+        return ApiResponse.page(projectService.list(request));
+    }
+
+    /**
+     * Project User management 固定角色列表。
+     *
+     * <p>GET /project/role-slots，供创建/编辑表单渲染六个角色行。</p>
+     */
+    @GetMapping("/role-slots")
+    public ApiResponse<List<ProjectRoleSlotItem>> roleSlots() {
+        return ApiResponse.success(projectService.listRoleSlots());
     }
 
     /**
@@ -89,14 +95,22 @@ public class ProjectController {
         return ApiResponse.success(projectService.listCompanyUsers(companyName, keyword));
     }
 
+    /**
+     * 项目详情（含 Project specification 表单字段与 roleSlots）。
+     */
     @GetMapping("/{projectId}")
     public ApiResponse<ProjectDetailResponse> detail(@PathVariable("projectId") Long projectId) {
         return ApiResponse.success(projectService.detail(projectId));
     }
 
+    /**
+     * 编辑项目（Project specification 保存）。
+     *
+     * <p>可更新 projectName、projectInfo、startDate、endDate；传入 members 时全量覆盖项目成员。</p>
+     */
     @PutMapping("/{projectId}")
-    public ApiResponse<Project> update(@PathVariable("projectId") Long projectId,
-                                       @Valid @RequestBody ProjectUpdateRequest request) {
+    public ApiResponse<ProjectDetailResponse> update(@PathVariable("projectId") Long projectId,
+                                                     @Valid @RequestBody ProjectUpdateRequest request) {
         return ApiResponse.success(projectService.update(projectId, request));
     }
 

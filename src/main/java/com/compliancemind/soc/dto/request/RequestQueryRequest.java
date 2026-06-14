@@ -6,6 +6,7 @@ import lombok.Data;
 public class RequestQueryRequest {
 
     private Long projectId;
+    private Long requestMasterId;
     private String documentStatus;
     private String ccCriteria;
 }

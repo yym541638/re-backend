@@ -74,7 +74,7 @@ public class AuthController {
      *
      * <p>POST /auth/register，匿名访问；可选填写邀请码。</p>
      *
-     * @param request 注册信息（邮箱、手机、公司、userType、permissions、密码等；可选邀请码）
+     * @param request 注册信息（邮箱、手机、公司、permissions、密码等；可选邀请码）
      * @return 注册成功后返回 JWT 及用户信息 包括购买信息
      */
 

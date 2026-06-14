@@ -14,6 +14,9 @@ public class RequestCreateRequest {
     @JsonAlias({"project_id"})
     private Long projectId;
 
+    @JsonAlias({"request_master_id"})
+    private Long requestMasterId;
+
     @NotBlank(message = "CC Criteria 不能为空")
     @JsonAlias({"cc_criteria", "type"})
     private String ccCriteria;

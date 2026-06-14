@@ -73,7 +73,6 @@ class AuthServiceRegisterTest {
         r.setPassword("Test@123456");
         r.setPhone("13800000000");
         r.setCompanyName("Demo Company");
-        r.setUserType("Clients");
         r.setPermissionCode("General User");
         return r;
     }
@@ -85,7 +84,6 @@ class AuthServiceRegisterTest {
         r.setPassword("Test@123456");
         r.setPhone("13800000000");
         r.setCompanyName("Demo Company");
-        r.setUserType("Consultant");
         r.setPermissionCode("General User");
         return r;
     }
@@ -147,7 +145,6 @@ class AuthServiceRegisterTest {
             UserAccount saved = cap.getValue();
             assertThat(saved.getCompanyId()).isEqualTo(2001);
             assertThat(saved.getPasswordHash()).isEqualTo("{bcrypt}x");
-            assertThat(saved.getUserType()).isEqualTo(SocConstants.Account.USER_TYPE_CLIENT);
             assertThat(saved.getStatus()).isEqualTo(SocConstants.Account.STATUS_ENABLED);
         }
 
@@ -356,22 +353,6 @@ class AuthServiceRegisterTest {
             assertThatThrownBy(() -> authService.register(req))
                 .isInstanceOf(BizException.class)
                 .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_UNSUPPORTED_USER_ROLE.getCode());
-        }
-
-        @Test
-        void user_type_required() {
-            RegisterRequest req = altRequest();
-            req.setUserType(null);
-
-            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
-            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
-            Company existing = new Company();
-            existing.setCompanyId(1);
-            when(companyMapper.selectByName(any())).thenReturn(existing);
-
-            assertThatThrownBy(() -> authService.register(req))
-                .isInstanceOf(BizException.class)
-                .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_USER_TYPE_REQUIRED.getCode());
         }
 
         @Test

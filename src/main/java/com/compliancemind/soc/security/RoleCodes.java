@@ -1,7 +1,5 @@
 package com.compliancemind.soc.security;
 
-import com.compliancemind.soc.common.constants.SocConstants;
-
 import java.util.Locale;
 import java.util.Set;
 
@@ -34,30 +32,7 @@ public final class RoleCodes {
         PROJECT_OWNER
     );
 
-    private static final Set<String> USER_TYPES = Set.of(
-        SocConstants.Account.USER_TYPE_CLIENT,
-        SocConstants.Account.USER_TYPE_CONSULTANT,
-        SocConstants.Account.USER_TYPE_AUDITOR
-    );
-
     private RoleCodes() {
-    }
-
-    /**
-     * 注册页用户类型（Clients / Consultant / Auditor），与权限 role_code 独立。
-     */
-    public static String normalizeUserType(String userType) {
-        String normalized = normalizeToken(userType);
-        return switch (normalized) {
-            case "CLIENT", "CLIENTS" -> SocConstants.Account.USER_TYPE_CLIENT;
-            case "CONSULTANT", "CONSULTANTS" -> SocConstants.Account.USER_TYPE_CONSULTANT;
-            case "AUDITOR", "AUDITORS" -> SocConstants.Account.USER_TYPE_AUDITOR;
-            default -> normalized;
-        };
-    }
-
-    public static boolean isUserType(String userType) {
-        return USER_TYPES.contains(normalizeUserType(userType));
     }
 
     public static String normalizeCompanyRole(String roleCode) {
@@ -108,7 +83,7 @@ public final class RoleCodes {
 
     public static boolean canAccessAllProjects(String roleCode) {
         String normalized = normalizeCompanyRole(roleCode);
-        return COMPANY_ADMIN.equals(normalized) || MANAGER.equals(normalized) || MANAGER_2.equals(normalized);
+        return COMPANY_ADMIN.equals(normalized) || MANAGER.equals(normalized) || MANAGER_2.equals(normalized)|| DOCUMENT_OWNER.equals(normalized);
     }
 
     public static boolean canManageProject(String roleCode) {

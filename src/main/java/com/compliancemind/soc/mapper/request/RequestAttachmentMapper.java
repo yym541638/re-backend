@@ -46,4 +46,13 @@ public interface RequestAttachmentMapper {
         where attachment_id = #{attachmentId} and deleted = 0
         """)
     int softDelete(@Param("attachmentId") Long attachmentId, @Param("updatedBy") Integer updatedBy);
+
+    @Update("""
+        update soc_request_attachment
+        set file_name = #{fileName}, updated_by = #{updatedBy}, updated_at = now()
+        where attachment_id = #{attachmentId} and deleted = 0
+        """)
+    int updateFileName(@Param("attachmentId") Long attachmentId,
+                       @Param("fileName") String fileName,
+                       @Param("updatedBy") Integer updatedBy);
 }

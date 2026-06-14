@@ -1,24 +1,24 @@
 package com.compliancemind.soc.service.project;
 
+import com.compliancemind.soc.common.api.PageResponse;
 import com.compliancemind.soc.common.constants.SocConstants;
 import com.compliancemind.soc.common.exception.BizErrorCode;
 import com.compliancemind.soc.common.exception.BizException;
-import com.compliancemind.soc.common.storage.LocalStorageService;
 import com.compliancemind.soc.dto.project.ProjectCompanyUserItem;
 import com.compliancemind.soc.dto.project.ProjectCreateRequest;
 import com.compliancemind.soc.dto.project.ProjectCreateResponse;
 import com.compliancemind.soc.dto.project.ProjectDetailResponse;
+import com.compliancemind.soc.dto.project.ProjectListItem;
 import com.compliancemind.soc.dto.project.ProjectMemberSaveRequest;
 import com.compliancemind.soc.dto.project.ProjectQueryRequest;
+import com.compliancemind.soc.dto.project.ProjectRoleSlotItem;
 import com.compliancemind.soc.dto.project.ProjectUpdateRequest;
 import com.compliancemind.soc.entity.auth.Company;
 import com.compliancemind.soc.entity.auth.UserAccount;
 import com.compliancemind.soc.entity.project.Project;
-import com.compliancemind.soc.entity.project.ProjectAttachment;
 import com.compliancemind.soc.entity.project.ProjectMember;
 import com.compliancemind.soc.mapper.auth.CompanyMapper;
 import com.compliancemind.soc.mapper.auth.UserAccountMapper;
-import com.compliancemind.soc.mapper.project.ProjectAttachmentMapper;
 import com.compliancemind.soc.mapper.project.ProjectMapper;
 import com.compliancemind.soc.mapper.project.ProjectMemberMapper;
 import com.compliancemind.soc.security.AuthorizationService;
@@ -27,15 +27,15 @@ import com.compliancemind.soc.security.RoleCodes;
 import com.compliancemind.soc.service.operationlog.OperationLogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 合规项目业务：列表查询、详情组装、项目 CRUD 及成员全量保存。
@@ -48,42 +48,60 @@ public class ProjectService {
 
     private static final DateTimeFormatter CODE_FORMATTER = DateTimeFormatter.ofPattern(SocConstants.Format.COMPACT_TIMESTAMP);
 
+    private static final List<Map.Entry<String, String>> PROJECT_ROLE_SLOTS = List.of(
+        Map.entry(RoleCodes.COMPANY_ADMIN, "Administrator"),
+        Map.entry(RoleCodes.PROJECT_OWNER, "Project Owner"),
+        Map.entry(RoleCodes.DOCUMENT_OWNER, "Document Owner"),
+        Map.entry(RoleCodes.GENERAL_USER, "General User"),
+        Map.entry(RoleCodes.MANAGER, "1st tier Manager User"),
+        Map.entry(RoleCodes.MANAGER_2, "2nd tier Manager User 1")
+    );
+
     private final ProjectMapper projectMapper;
     private final ProjectMemberMapper projectMemberMapper;
-    private final ProjectAttachmentMapper projectAttachmentMapper;
     private final UserAccountMapper userAccountMapper;
     private final CompanyMapper companyMapper;
     private final AuthorizationService authorizationService;
     private final CurrentUserAccessor currentUserAccessor;
     private final OperationLogService operationLogService;
-    private final LocalStorageService localStorageService;
 
     public ProjectService(ProjectMapper projectMapper,
                           ProjectMemberMapper projectMemberMapper,
-                          ProjectAttachmentMapper projectAttachmentMapper,
                           UserAccountMapper userAccountMapper,
                           CompanyMapper companyMapper,
                           AuthorizationService authorizationService,
                           CurrentUserAccessor currentUserAccessor,
-                          OperationLogService operationLogService,
-                          LocalStorageService localStorageService) {
+                          OperationLogService operationLogService) {
         this.projectMapper = projectMapper;
         this.projectMemberMapper = projectMemberMapper;
-        this.projectAttachmentMapper = projectAttachmentMapper;
         this.userAccountMapper = userAccountMapper;
         this.companyMapper = companyMapper;
         this.authorizationService = authorizationService;
         this.currentUserAccessor = currentUserAccessor;
         this.operationLogService = operationLogService;
-        this.localStorageService = localStorageService;
     }
 
-    public List<Project> list(ProjectQueryRequest request) {
+    public PageResponse<ProjectListItem> list(ProjectQueryRequest request) {
+        applyPagination(request);
         UserAccount currentUser = authorizationService.currentUser();
         if (authorizationService.canAccessAllProjects()) {
-            return projectMapper.listAll(currentUser.getCompanyId(), request);
+            long total = projectMapper.countAll(currentUser.getCompanyId(), request);
+            List<Project> list = projectMapper.listAll(currentUser.getCompanyId(), request);
+            return PageResponse.of(total, request.getPageNum(), request.getPageSize(), toListItems(list));
         }
-        return projectMapper.listAllByMember(currentUser.getCompanyId(), currentUser.getUserId(), request);
+        long total = projectMapper.countAllByMember(
+            currentUser.getCompanyId(), currentUser.getUserId(), request);
+        List<Project> list = projectMapper.listAllByMember(
+            currentUser.getCompanyId(), currentUser.getUserId(), request);
+        return PageResponse.of(total, request.getPageNum(), request.getPageSize(), toListItems(list));
+    }
+
+    private void applyPagination(ProjectQueryRequest request) {
+        int pageNum = request.getPageNum() == null || request.getPageNum() < 1 ? 1 : request.getPageNum();
+        int pageSize = request.getPageSize() == null || request.getPageSize() < 1 ? 10 : request.getPageSize();
+        request.setPageNum(pageNum);
+        request.setPageSize(pageSize);
+        request.setOffset((long) (pageNum - 1) * pageSize);
     }
 
     /**
@@ -104,51 +122,52 @@ public class ProjectService {
                 .toList();
     }
 
+    public List<ProjectRoleSlotItem> listRoleSlots() {
+        return PROJECT_ROLE_SLOTS.stream().map(entry -> {
+            ProjectRoleSlotItem slot = new ProjectRoleSlotItem();
+            slot.setRoleCode(entry.getKey());
+            slot.setRoleName(entry.getValue());
+            return slot;
+        }).toList();
+    }
+
     public ProjectDetailResponse detail(Long projectId) {
         Project project = authorizationService.requireProjectRead(projectId);
+        List<ProjectMember> members = projectMemberMapper.listByProjectId(projectId);
         ProjectDetailResponse response = new ProjectDetailResponse();
         response.setProject(project);
-        response.setMembers(projectMemberMapper.listByProjectId(projectId));
+        response.setMembers(members);
+        response.setRoleSlots(buildRoleSlots(members));
         return response;
     }
 
     /**
-     * 创建项目：写入项目基本信息、分配项目维度成员角色、可选保存上传文件。
+     * 创建项目：写入项目基本信息、分配项目维度成员角色。
      */
     @Transactional(rollbackFor = Exception.class)
-    public ProjectCreateResponse create(ProjectCreateRequest request, List<MultipartFile> files) {
-        // 校验当前用户是否具备公司级项目管理权限（仅公司管理员可创建项目）
+    public ProjectCreateResponse create(ProjectCreateRequest request) {
         authorizationService.requireCompanyProjectManagement();
-        // 获取当前登录用户，用于填充 companyId 及审计字段
         UserAccount currentUser = authorizationService.currentUser();
 
         Project project = new Project();
-        // 项目归属当前用户所在公司
         project.setCompanyId(currentUser.getCompanyId());
-        // 自动生成项目编号：固定前缀 + 当前时间戳
         project.setProjectCode(SocConstants.Project.CODE_PREFIX + CODE_FORMATTER.format(LocalDateTime.now()));
         project.setProjectName(request.getProjectName().trim());
-        // 合规类型未传时默认 SOC2
-        project.setComplianceType(resolveComplianceType(request.getComplianceType()));
-        // 审计类型当前固定 Type1
+        project.setProjectInfo(normalizeProjectInfo(request.getProjectInfo()));
+        project.setComplianceType(SocConstants.Ai.DEFAULT_COMPLIANCE_FRAMEWORK);
         project.setAuditType(SocConstants.AuditType.DISPLAY_TYPE1);
         project.setCurrentVersion(SocConstants.Project.INITIAL_VERSION);
-        // gap 数量在 Gap Analysis 生成后更新
         project.setGapCount(0);
-        // 新建项目默认 Active，End 由 Passing Scores 完成后系统更新
         project.setStatus(SocConstants.Project.STATUS_ACTIVE);
         project.setStartDate(request.getStartDate());
-        // 结束日期在 Passing Scores 打分完成后由系统写入
-        project.setEndDate(null);
+        project.setEndDate(request.getEndDate());
         project.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);
         project.setCreatedBy(currentUser.getUserId());
         project.setUpdatedBy(currentUser.getUserId());
-        // 持久化项目记录（insert 后 projectId 由数据库回填）
         projectMapper.insert(project);
 
-        // 若创建者未在 members 中，自动补为项目 Administrator
-        List<ProjectMemberSaveRequest.MemberItem> memberItems = ensureCreatorInMembers(request.getMembers(), currentUser);
-        // 校验并写入项目维度成员角色（须为本公司用户、不可重复）
+        List<ProjectMemberSaveRequest.MemberItem> memberItems =
+            ensureCreatorInMembers(request.getMembers(), currentUser);
         List<ProjectMember> savedMembers = persistMembers(
             project.getProjectId(),
             currentUser.getCompanyId(),
@@ -156,10 +175,6 @@ public class ProjectService {
             currentUser.getUserId()
         );
 
-        // 保存创建页上传的附件（可选，pdf/word/excel）
-        List<ProjectAttachment> attachments = storeAttachments(project.getProjectId(), files, currentUser.getUserId());
-
-        // 记录项目创建操作日志
         operationLogService.record(SocConstants.OperationLog.Module.PROJECT,
             SocConstants.OperationLog.Action.CREATE,
             SocConstants.OperationLog.EntityType.PROJECT,
@@ -168,23 +183,34 @@ public class ProjectService {
             project.getProjectId(),
             SocConstants.OperationLog.Detail.PROJECT_CREATE_ZH);
 
-        // 组装创建结果：项目 + 成员 + 附件
         ProjectCreateResponse response = new ProjectCreateResponse();
         response.setProject(project);
         response.setMembers(savedMembers);
-        response.setAttachments(attachments);
+        response.setRoleSlots(buildRoleSlots(savedMembers));
+        response.setAttachments(List.of());
         return response;
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public Project update(Long projectId, ProjectUpdateRequest request) {
+    public ProjectDetailResponse update(Long projectId, ProjectUpdateRequest request) {
         Project project = authorizationService.requireProjectManage(projectId);
         project.setProjectName(request.getProjectName().trim());
-        project.setComplianceType(request.getComplianceType().trim());
-        project.setAuditType(request.getAuditType().trim());
-        project.setStartDate(request.getStartDate());
+        if (request.getProjectInfo() != null) {
+            project.setProjectInfo(normalizeProjectInfo(request.getProjectInfo()));
+        }
+        if (request.getStartDate() != null) {
+            project.setStartDate(request.getStartDate());
+        }
+        if (request.getEndDate() != null) {
+            project.setEndDate(request.getEndDate());
+        }
         project.setUpdatedBy(currentUserAccessor.requireUserId());
         projectMapper.update(project);
+
+        if (request.getMembers() != null) {
+            replaceMembers(projectId, project.getCompanyId(), request.getMembers());
+        }
+
         operationLogService.record(SocConstants.OperationLog.Module.PROJECT,
             SocConstants.OperationLog.Action.UPDATE,
             SocConstants.OperationLog.EntityType.PROJECT,
@@ -192,7 +218,7 @@ public class ProjectService {
             project.getProjectName(),
             project.getProjectId(),
             SocConstants.OperationLog.Detail.PROJECT_UPDATE_ZH);
-        return project;
+        return detail(projectId);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -215,14 +241,7 @@ public class ProjectService {
     public List<ProjectMember> saveMembers(Long projectId, ProjectMemberSaveRequest request) {
         authorizationService.requireProjectManage(projectId);
         Project project = authorizationService.requireProjectRead(projectId);
-        Integer operatorId = currentUserAccessor.requireUserId();
-        projectMemberMapper.softDeleteByProjectId(projectId, operatorId);
-        List<ProjectMember> savedMembers = persistMembers(
-            projectId,
-            project.getCompanyId(),
-            request.getMembers(),
-            operatorId
-        );
+        List<ProjectMember> savedMembers = replaceMembers(projectId, project.getCompanyId(), request.getMembers());
         operationLogService.record(SocConstants.OperationLog.Module.PROJECT,
             SocConstants.OperationLog.Action.UPDATE_MEMBERS,
             SocConstants.OperationLog.EntityType.PROJECT,
@@ -238,16 +257,29 @@ public class ProjectService {
         authorizationService.requireProjectRead(projectId);
         projectMapper.updateStatusAndEndDate(projectId,
             SocConstants.Project.STATUS_END,
-            LocalDate.now(),
+            LocalDateTime.now(),
             currentUserAccessor.requireUserId(),
             SocConstants.Project.STATUS_ACTIVE);
+    }
+
+    private List<ProjectMember> replaceMembers(Long projectId,
+                                               Integer companyId,
+                                               List<ProjectMemberSaveRequest.MemberItem> members) {
+        Integer operatorId = currentUserAccessor.requireUserId();
+        projectMemberMapper.softDeleteByProjectId(projectId, operatorId);
+        return persistMembers(projectId, companyId, members, operatorId);
     }
 
     private List<ProjectMemberSaveRequest.MemberItem> ensureCreatorInMembers(
         List<ProjectMemberSaveRequest.MemberItem> members,
         UserAccount creator) {
         if (members == null || members.isEmpty()) {
-            throw new BizException(BizErrorCode.PROJECT_MEMBERS_REQUIRED);
+            ProjectMemberSaveRequest.MemberItem creatorItem = new ProjectMemberSaveRequest.MemberItem();
+            creatorItem.setUserId(creator.getUserId());
+            creatorItem.setMemberRole(RoleCodes.COMPANY_ADMIN);
+            creatorItem.setDisplayName(creator.getDisplayName());
+            creatorItem.setEmail(creator.getEmail());
+            return List.of(creatorItem);
         }
         boolean creatorIncluded = members.stream()
             .anyMatch(item -> creator.getUserId().equals(item.getUserId()));
@@ -273,6 +305,7 @@ public class ProjectService {
         }
 
         Set<Integer> assignedUserIds = new HashSet<>();
+        Set<String> assignedRoles = new HashSet<>();
         boolean hasProjectManager = false;
         List<ProjectMember> savedMembers = new ArrayList<>();
 
@@ -292,6 +325,9 @@ public class ProjectService {
             String memberRole = RoleCodes.normalizeProjectRole(item.getMemberRole());
             if (!RoleCodes.isProjectRole(memberRole)) {
                 throw new BizException(BizErrorCode.PROJECT_MEMBER_ROLE_UNSUPPORTED);
+            }
+            if (!assignedRoles.add(memberRole)) {
+                throw new BizException(BizErrorCode.PROJECT_MEMBER_DUPLICATE_USER);
             }
             if (RoleCodes.canManageProject(memberRole)) {
                 hasProjectManager = true;
@@ -316,33 +352,51 @@ public class ProjectService {
         return savedMembers;
     }
 
-    private List<ProjectAttachment> storeAttachments(Long projectId, List<MultipartFile> files, Integer operatorId) {
-        if (files == null || files.isEmpty()) {
-            return List.of();
-        }
-        List<ProjectAttachment> attachments = new ArrayList<>();
-        for (MultipartFile file : files) {
-            if (file == null || file.isEmpty()) {
-                continue;
+    private List<ProjectRoleSlotItem> buildRoleSlots(List<ProjectMember> members) {
+        Map<String, ProjectMember> memberByRole = members == null ? Map.of() : members.stream()
+            .collect(Collectors.toMap(
+                member -> RoleCodes.normalizeProjectRole(member.getMemberRole()),
+                member -> member,
+                (left, right) -> left
+            ));
+        List<ProjectRoleSlotItem> slots = new ArrayList<>();
+        for (Map.Entry<String, String> entry : PROJECT_ROLE_SLOTS) {
+            ProjectRoleSlotItem slot = new ProjectRoleSlotItem();
+            slot.setRoleCode(entry.getKey());
+            slot.setRoleName(entry.getValue());
+            ProjectMember member = memberByRole.get(entry.getKey());
+            if (member != null) {
+                slot.setUserId(member.getUserId());
+                slot.setDisplayName(member.getDisplayName());
+                slot.setEmail(member.getEmail());
             }
-            LocalStorageService.StoredFile storedFile = localStorageService.storeProjectAttachment(projectId, file);
-            ProjectAttachment attachment = new ProjectAttachment();
-            attachment.setProjectId(projectId);
-            attachment.setFileName(storedFile.originalName());
-            attachment.setFilePath(storedFile.filePath());
-            attachment.setFileSize(storedFile.fileSize());
-            attachment.setCreatedBy(operatorId);
-            projectAttachmentMapper.insert(attachment);
-            attachments.add(attachment);
+            slots.add(slot);
         }
-        return attachments;
+        return slots;
     }
 
-    private String resolveComplianceType(String complianceType) {
-        if (complianceType == null || complianceType.isBlank()) {
-            return SocConstants.Ai.DEFAULT_COMPLIANCE_FRAMEWORK;
+    private List<ProjectListItem> toListItems(List<Project> projects) {
+        if (projects == null || projects.isEmpty()) {
+            return List.of();
         }
-        return complianceType.trim();
+        return projects.stream().map(project -> {
+            ProjectListItem item = new ProjectListItem();
+            item.setProjectId(project.getProjectId());
+            item.setProjectName(project.getProjectName());
+            item.setProjectInfo(project.getProjectInfo());
+            item.setStartDate(project.getStartDate());
+            item.setEndDate(project.getEndDate());
+            item.setLastModifiedDate(project.getUpdatedAt());
+            return item;
+        }).toList();
+    }
+
+    private String normalizeProjectInfo(String projectInfo) {
+        if (projectInfo == null) {
+            return null;
+        }
+        String trimmed = projectInfo.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private String firstNonBlank(String preferred, String fallback) {
@@ -359,7 +413,6 @@ public class ProjectService {
         item.setEmail(user.getEmail());
         item.setPhone(user.getPhone());
         item.setPermissionCode(RoleCodes.normalizeCompanyRole(user.getRoleCode()));
-        item.setUserType(user.getUserType());
         return item;
     }
 }

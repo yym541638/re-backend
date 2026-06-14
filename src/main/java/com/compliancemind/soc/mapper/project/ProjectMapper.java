@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /** {@code soc_project} 合规项目。 */
@@ -18,7 +18,7 @@ public interface ProjectMapper {
 
     @Select({
         "<script>",
-        "select project_id, company_id, project_code, project_name, compliance_type, audit_type, current_version,",
+        "select project_id, company_id, project_code, project_name, project_info, compliance_type, audit_type, current_version,",
         "gap_count, status, start_date, end_date, deleted, created_by, updated_by, created_at, updated_at",
         "from soc_project",
         "where deleted = 0 and company_id = #{companyId}",
@@ -26,9 +26,12 @@ public interface ProjectMapper {
         "  and status = #{query.status}",
         "</if>",
         "<if test='query.keyword != null and query.keyword != \"\"'>",
-        "  and (project_name like concat('%', #{query.keyword}, '%') or project_code like concat('%', #{query.keyword}, '%'))",
+        "  and (project_name like concat('%', #{query.keyword}, '%')",
+        "    or project_code like concat('%', #{query.keyword}, '%')",
+        "    or project_info like concat('%', #{query.keyword}, '%'))",
         "</if>",
         "order by updated_at desc",
+        "limit #{query.offset}, #{query.pageSize}",
         "</script>"
     })
     List<Project> listAll(@Param("companyId") Integer companyId,
@@ -36,7 +39,25 @@ public interface ProjectMapper {
 
     @Select({
         "<script>",
-        "select distinct p.project_id, p.company_id, p.project_code, p.project_name, p.compliance_type, p.audit_type, p.current_version,",
+        "select count(*) as total_count",
+        "from soc_project",
+        "where deleted = 0 and company_id = #{companyId}",
+        "<if test='query.status != null and query.status != \"\"'>",
+        "  and status = #{query.status}",
+        "</if>",
+        "<if test='query.keyword != null and query.keyword != \"\"'>",
+        "  and (project_name like concat('%', #{query.keyword}, '%')",
+        "    or project_code like concat('%', #{query.keyword}, '%')",
+        "    or project_info like concat('%', #{query.keyword}, '%'))",
+        "</if>",
+        "</script>"
+    })
+    long countAll(@Param("companyId") Integer companyId,
+                  @Param("query") ProjectQueryRequest query);
+
+    @Select({
+        "<script>",
+        "select distinct p.project_id, p.company_id, p.project_code, p.project_name, p.project_info, p.compliance_type, p.audit_type, p.current_version,",
         "p.gap_count, p.status, p.start_date, p.end_date, p.deleted, p.created_by, p.updated_by, p.created_at, p.updated_at",
         "from soc_project p",
         "inner join soc_project_member pm on pm.project_id = p.project_id and pm.user_id = #{userId} and pm.deleted = 0",
@@ -45,17 +66,40 @@ public interface ProjectMapper {
         "  and p.status = #{query.status}",
         "</if>",
         "<if test='query.keyword != null and query.keyword != \"\"'>",
-        "  and (p.project_name like concat('%', #{query.keyword}, '%') or p.project_code like concat('%', #{query.keyword}, '%'))",
+        "  and (p.project_name like concat('%', #{query.keyword}, '%')",
+        "    or p.project_code like concat('%', #{query.keyword}, '%')",
+        "    or p.project_info like concat('%', #{query.keyword}, '%'))",
         "</if>",
         "order by p.updated_at desc",
+        "limit #{query.offset}, #{query.pageSize}",
         "</script>"
     })
     List<Project> listAllByMember(@Param("companyId") Integer companyId,
                                   @Param("userId") Integer userId,
                                   @Param("query") ProjectQueryRequest query);
 
+    @Select({
+        "<script>",
+        "select count(distinct p.project_id) as total_count",
+        "from soc_project p",
+        "inner join soc_project_member pm on pm.project_id = p.project_id and pm.user_id = #{userId} and pm.deleted = 0",
+        "where p.deleted = 0 and p.company_id = #{companyId}",
+        "<if test='query.status != null and query.status != \"\"'>",
+        "  and p.status = #{query.status}",
+        "</if>",
+        "<if test='query.keyword != null and query.keyword != \"\"'>",
+        "  and (p.project_name like concat('%', #{query.keyword}, '%')",
+        "    or p.project_code like concat('%', #{query.keyword}, '%')",
+        "    or p.project_info like concat('%', #{query.keyword}, '%'))",
+        "</if>",
+        "</script>"
+    })
+    long countAllByMember(@Param("companyId") Integer companyId,
+                          @Param("userId") Integer userId,
+                          @Param("query") ProjectQueryRequest query);
+
     @Select("""
-        select project_id, company_id, project_code, project_name, compliance_type, audit_type, current_version,
+        select project_id, company_id, project_code, project_name, project_info, compliance_type, audit_type, current_version,
                gap_count, status, start_date, end_date, deleted, created_by, updated_by, created_at, updated_at
         from soc_project
         where project_id = #{projectId} and deleted = 0
@@ -63,9 +107,9 @@ public interface ProjectMapper {
     Project selectById(@Param("projectId") Long projectId);
 
     @Insert("""
-        insert into soc_project(company_id, project_code, project_name, compliance_type, audit_type, current_version,
+        insert into soc_project(company_id, project_code, project_name, project_info, compliance_type, audit_type, current_version,
                                 gap_count, status, start_date, end_date, deleted, created_by, updated_by, created_at, updated_at)
-        values(#{companyId}, #{projectCode}, #{projectName}, #{complianceType}, #{auditType}, #{currentVersion},
+        values(#{companyId}, #{projectCode}, #{projectName}, #{projectInfo}, #{complianceType}, #{auditType}, #{currentVersion},
                #{gapCount}, #{status}, #{startDate}, #{endDate}, #{deleted}, #{createdBy}, #{updatedBy}, now(), now())
         """)
     @Options(useGeneratedKeys = true, keyProperty = "projectId")
@@ -74,9 +118,9 @@ public interface ProjectMapper {
     @Update("""
         update soc_project
         set project_name = #{projectName},
-            compliance_type = #{complianceType},
-            audit_type = #{auditType},
+            project_info = #{projectInfo},
             start_date = #{startDate},
+            end_date = #{endDate},
             updated_by = #{updatedBy},
             updated_at = now()
         where project_id = #{projectId} and deleted = 0
@@ -93,7 +137,7 @@ public interface ProjectMapper {
         """)
     int updateStatusAndEndDate(@Param("projectId") Long projectId,
                                @Param("status") String status,
-                               @Param("endDate") LocalDate endDate,
+                               @Param("endDate") LocalDateTime endDate,
                                @Param("updatedBy") Integer updatedBy,
                                @Param("previousStatus") String previousStatus);
 

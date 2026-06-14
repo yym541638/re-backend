@@ -104,6 +104,10 @@ public class RequestController {
 
                                                              @RequestParam(value = "project_id", required = false) Long projectIdLegacy,
 
+                                                             @RequestParam(value = "requestMasterId", required = false) Long requestMasterId,
+
+                                                             @RequestParam(value = "request_master_id", required = false) Long requestMasterIdLegacy,
+
                                                              @RequestParam(value = "documentStatus", required = false) String documentStatus,
 
                                                              @RequestParam(value = "status", required = false) String documentStatusLegacy,
@@ -115,6 +119,8 @@ public class RequestController {
         RequestQueryRequest request = new RequestQueryRequest();
 
         request.setProjectId(projectId != null ? projectId : projectIdLegacy);
+
+        request.setRequestMasterId(requestMasterId != null ? requestMasterId : requestMasterIdLegacy);
 
         request.setDocumentStatus(documentStatus != null ? documentStatus : documentStatusLegacy);
 

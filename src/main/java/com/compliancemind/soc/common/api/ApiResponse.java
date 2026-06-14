@@ -12,12 +12,22 @@ public class ApiResponse<T> {
     private int code;
     private String message;
     private T data;
+    /** 分页接口可选：与 {@code data} 内总条数一致，便于前端从根节点读取。 */
+    private Long total;
 
     public static <T> ApiResponse<T> success(T data) {
         ApiResponse<T> response = new ApiResponse<>();
         response.setCode(SocConstants.Api.SUCCESS_CODE);
         response.setMessage(null);
         response.setData(data);
+        return response;
+    }
+
+    public static <T> ApiResponse<PageResponse<T>> page(PageResponse<T> pageData) {
+        ApiResponse<PageResponse<T>> response = success(pageData);
+        if (pageData != null) {
+            response.setTotal(pageData.getTotalCount());
+        }
         return response;
     }
 

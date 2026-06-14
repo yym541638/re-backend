@@ -29,12 +29,6 @@ public class RegisterRequest {
     private String companyName;
 
     /**
-     * 用户类型（注册页 Role 下拉）：Clients / Consultant / Auditor。
-     */
-    @JsonAlias({"user_type", "userType"})
-    private String userType;
-
-    /**
      * 公司权限（注册页 Permissions 下拉）：Admin / Document Owner / General User / Manager tier1 / Manager tier2。
      */
     @JsonAlias({"permissions", "permission", "permissionCode"})

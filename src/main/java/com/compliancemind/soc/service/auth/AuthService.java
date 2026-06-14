@@ -103,7 +103,6 @@ public class AuthService {
         userAccount.setEmail(request.getEmail().trim());
         userAccount.setPhone(request.getPhone().trim());
         userAccount.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        userAccount.setUserType(resolveUserType(request));
         String permissionCode = resolvePermissionCode(request);
         ensureCompanyAdminAssignable(company.getCompanyId(), permissionCode);
         userAccount.setRoleCode(permissionCode);
@@ -168,24 +167,10 @@ public class AuthService {
         userInfo.setPhone(userAccount.getPhone());
         userInfo.setAvatarUrl(userAccount.getAvatarUrl());
         userInfo.setJobTitle(userAccount.getJobTitle());
-        userInfo.setUserType(userAccount.getUserType() == null || userAccount.getUserType().isBlank()
-            ? SocConstants.Account.USER_TYPE_CLIENT
-            : RoleCodes.normalizeUserType(userAccount.getUserType()));
         // 归一化后的权限，序列化为 user_info.role
         userInfo.setRoleCode(roleCode);
         response.setUser(userInfo);
         return response;
-    }
-
-    private String resolveUserType(RegisterRequest request) {
-        if (request.getUserType() != null && !request.getUserType().isBlank()) {
-            String normalized = RoleCodes.normalizeUserType(request.getUserType());
-            if (!RoleCodes.isUserType(normalized)) {
-                throw new BizException(BizErrorCode.AUTH_UNSUPPORTED_USER_TYPE);
-            }
-            return normalized;
-        }
-        throw new BizException(BizErrorCode.AUTH_USER_TYPE_REQUIRED);
     }
 
     private String resolvePermissionCode(RegisterRequest request) {

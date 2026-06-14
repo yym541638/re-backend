@@ -2,7 +2,6 @@ package com.compliancemind.soc.entity.project;
 
 import lombok.Data;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /** SOC 合规项目（{@code soc_project}）。 */
@@ -17,6 +16,8 @@ public class Project {
     private String projectCode;
     /** 项目名称。 */
     private String projectName;
+    /** 项目描述（Project Info）。 */
+    private String projectInfo;
     /** 合规类型（如 SOC2、ISO27001）。 */
     private String complianceType;
     /** 审计类型（Type1 / Type2）。 */
@@ -27,10 +28,10 @@ public class Project {
     private Integer gapCount;
     /** 项目状态（如 IN_PROGRESS）。 */
     private String status;
-    /** 项目开始日期。 */
-    private LocalDate startDate;
-    /** 项目结束日期。 */
-    private LocalDate endDate;
+    /** 项目开始时间。 */
+    private LocalDateTime startDate;
+    /** 项目结束时间。 */
+    private LocalDateTime endDate;
     /** 软删除标记（0=未删除，1=已删除）。 */
     private Integer deleted;
     /** 创建人用户 ID。 */
