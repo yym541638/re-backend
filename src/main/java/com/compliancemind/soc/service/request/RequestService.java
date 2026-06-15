@@ -1,5 +1,6 @@
 package com.compliancemind.soc.service.request;
 
+import com.compliancemind.soc.common.storage.LocalStorageService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.compliancemind.soc.entity.auth.UserAccount;
@@ -7,7 +8,6 @@ import com.compliancemind.soc.mapper.auth.UserAccountMapper;
 import com.compliancemind.soc.common.constants.SocConstants;
 import com.compliancemind.soc.common.exception.BizErrorCode;
 import com.compliancemind.soc.common.exception.BizException;
-import com.compliancemind.soc.common.storage.LocalStorageService;
 import com.compliancemind.soc.service.operationlog.OperationLogService;
 import com.compliancemind.soc.entity.project.Project;
 import com.compliancemind.soc.entity.request.RequestMaster;
@@ -300,16 +300,7 @@ public class RequestService {
         authorizationService.requireProjectWrite(complianceRequest.getProjectId());
         Integer operatorId = currentUserAccessor.requireUserId();
         LocalStorageService.StoredFile storedFile = localStorageService.storeRequestAttachment(requestId, file);
-        RequestAttachment attachment = new RequestAttachment();
-        attachment.setRequestId(complianceRequest.getRequestId());
-        attachment.setFileName(storedFile.originalFilename());
-        attachment.setFilePath(storedFile.relativePath());
-        attachment.setFileType(extractExtension(storedFile.originalFilename()));
-        attachment.setContentType(storedFile.contentType());
-        attachment.setFileSize(storedFile.fileSize());
-        attachment.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);
-        attachment.setCreatedBy(operatorId);
-        attachment.setUpdatedBy(operatorId);
+        RequestAttachment attachment = buildAttachment(complianceRequest.getRequestId(), storedFile, operatorId);
         requestAttachmentMapper.insert(attachment);
         complianceRequest.setEvidenceManualStatus(SocConstants.RequestIndividual.EVIDENCE_STATUS_UPLOADED);
         complianceRequest.setLastUpdateAt(LocalDateTime.now());
@@ -539,5 +530,21 @@ public class RequestService {
     private String extractExtension(String fileName) {
         int index = fileName.lastIndexOf('.');
         return index < 0 ? "" : fileName.substring(index + 1).toLowerCase();
+    }
+
+    private RequestAttachment buildAttachment(Long requestId,
+                                              LocalStorageService.StoredFile storedFile,
+                                              Integer operatorId) {
+        RequestAttachment attachment = new RequestAttachment();
+        attachment.setRequestId(requestId);
+        attachment.setFileName(storedFile.originalName());
+        attachment.setFilePath(storedFile.relativePath());
+        attachment.setFileType(extractExtension(storedFile.originalName()));
+        attachment.setContentType(storedFile.contentType());
+        attachment.setFileSize(storedFile.fileSize());
+        attachment.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);
+        attachment.setCreatedBy(operatorId);
+        attachment.setUpdatedBy(operatorId);
+        return attachment;
     }
 }

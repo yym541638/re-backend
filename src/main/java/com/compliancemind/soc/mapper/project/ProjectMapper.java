@@ -18,16 +18,12 @@ public interface ProjectMapper {
 
     @Select({
         "<script>",
-        "select project_id, company_id, project_code, project_name, project_info, compliance_type, audit_type, current_version,",
-        "gap_count, status, start_date, end_date, deleted, created_by, updated_by, created_at, updated_at",
+        "select project_id, company_id, project_name, project_info, start_date, end_date,",
+        "deleted, created_by, updated_by, created_at, updated_at",
         "from soc_project",
         "where deleted = 0 and company_id = #{companyId}",
-        "<if test='query.status != null and query.status != \"\"'>",
-        "  and status = #{query.status}",
-        "</if>",
         "<if test='query.keyword != null and query.keyword != \"\"'>",
         "  and (project_name like concat('%', #{query.keyword}, '%')",
-        "    or project_code like concat('%', #{query.keyword}, '%')",
         "    or project_info like concat('%', #{query.keyword}, '%'))",
         "</if>",
         "order by updated_at desc",
@@ -42,12 +38,8 @@ public interface ProjectMapper {
         "select count(*) as total_count",
         "from soc_project",
         "where deleted = 0 and company_id = #{companyId}",
-        "<if test='query.status != null and query.status != \"\"'>",
-        "  and status = #{query.status}",
-        "</if>",
         "<if test='query.keyword != null and query.keyword != \"\"'>",
         "  and (project_name like concat('%', #{query.keyword}, '%')",
-        "    or project_code like concat('%', #{query.keyword}, '%')",
         "    or project_info like concat('%', #{query.keyword}, '%'))",
         "</if>",
         "</script>"
@@ -57,17 +49,13 @@ public interface ProjectMapper {
 
     @Select({
         "<script>",
-        "select distinct p.project_id, p.company_id, p.project_code, p.project_name, p.project_info, p.compliance_type, p.audit_type, p.current_version,",
-        "p.gap_count, p.status, p.start_date, p.end_date, p.deleted, p.created_by, p.updated_by, p.created_at, p.updated_at",
+        "select distinct p.project_id, p.company_id, p.project_name, p.project_info, p.start_date, p.end_date,",
+        "p.deleted, p.created_by, p.updated_by, p.created_at, p.updated_at",
         "from soc_project p",
         "inner join soc_project_member pm on pm.project_id = p.project_id and pm.user_id = #{userId} and pm.deleted = 0",
         "where p.deleted = 0 and p.company_id = #{companyId}",
-        "<if test='query.status != null and query.status != \"\"'>",
-        "  and p.status = #{query.status}",
-        "</if>",
         "<if test='query.keyword != null and query.keyword != \"\"'>",
         "  and (p.project_name like concat('%', #{query.keyword}, '%')",
-        "    or p.project_code like concat('%', #{query.keyword}, '%')",
         "    or p.project_info like concat('%', #{query.keyword}, '%'))",
         "</if>",
         "order by p.updated_at desc",
@@ -84,12 +72,8 @@ public interface ProjectMapper {
         "from soc_project p",
         "inner join soc_project_member pm on pm.project_id = p.project_id and pm.user_id = #{userId} and pm.deleted = 0",
         "where p.deleted = 0 and p.company_id = #{companyId}",
-        "<if test='query.status != null and query.status != \"\"'>",
-        "  and p.status = #{query.status}",
-        "</if>",
         "<if test='query.keyword != null and query.keyword != \"\"'>",
         "  and (p.project_name like concat('%', #{query.keyword}, '%')",
-        "    or p.project_code like concat('%', #{query.keyword}, '%')",
         "    or p.project_info like concat('%', #{query.keyword}, '%'))",
         "</if>",
         "</script>"
@@ -99,18 +83,18 @@ public interface ProjectMapper {
                           @Param("query") ProjectQueryRequest query);
 
     @Select("""
-        select project_id, company_id, project_code, project_name, project_info, compliance_type, audit_type, current_version,
-               gap_count, status, start_date, end_date, deleted, created_by, updated_by, created_at, updated_at
+        select project_id, company_id, project_name, project_info, start_date, end_date,
+               deleted, created_by, updated_by, created_at, updated_at
         from soc_project
         where project_id = #{projectId} and deleted = 0
         """)
     Project selectById(@Param("projectId") Long projectId);
 
     @Insert("""
-        insert into soc_project(company_id, project_code, project_name, project_info, compliance_type, audit_type, current_version,
-                                gap_count, status, start_date, end_date, deleted, created_by, updated_by, created_at, updated_at)
-        values(#{companyId}, #{projectCode}, #{projectName}, #{projectInfo}, #{complianceType}, #{auditType}, #{currentVersion},
-               #{gapCount}, #{status}, #{startDate}, #{endDate}, #{deleted}, #{createdBy}, #{updatedBy}, now(), now())
+        insert into soc_project(company_id, project_name, project_info, start_date, end_date,
+                                deleted, created_by, updated_by, created_at, updated_at)
+        values(#{companyId}, #{projectName}, #{projectInfo}, #{startDate}, #{endDate},
+               #{deleted}, #{createdBy}, #{updatedBy}, now(), now())
         """)
     @Options(useGeneratedKeys = true, keyProperty = "projectId")
     int insert(Project project);
@@ -129,17 +113,14 @@ public interface ProjectMapper {
 
     @Update("""
         update soc_project
-        set status = #{status},
-            end_date = #{endDate},
+        set end_date = #{endDate},
             updated_by = #{updatedBy},
             updated_at = now()
-        where project_id = #{projectId} and deleted = 0 and status = #{previousStatus}
+        where project_id = #{projectId} and deleted = 0
         """)
-    int updateStatusAndEndDate(@Param("projectId") Long projectId,
-                               @Param("status") String status,
-                               @Param("endDate") LocalDateTime endDate,
-                               @Param("updatedBy") Integer updatedBy,
-                               @Param("previousStatus") String previousStatus);
+    int updateEndDate(@Param("projectId") Long projectId,
+                      @Param("endDate") LocalDateTime endDate,
+                      @Param("updatedBy") Integer updatedBy);
 
     @Update("""
         update soc_project

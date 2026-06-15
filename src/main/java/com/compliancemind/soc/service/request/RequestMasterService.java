@@ -129,7 +129,12 @@ public class RequestMasterService {
         requestMaster.setCreatedBy(operatorId);
         requestMaster.setUpdatedBy(operatorId);
         requestMasterMapper.insert(requestMaster);
-
+        /**
+         * 表里 request_master_code 一般是 NOT NULL，插入前必须先有值
+         * 拿到数据库自增主键 requestMasterId
+         * 用 ID 拼业务编码，如 ReqM000003
+         * 把占位 "TEMP" 换成真实编码
+         */
         requestMaster.setRequestMasterCode(buildRequestMasterCode(requestMaster.getRequestMasterId()));
         requestMasterMapper.updateCode(requestMaster);
 
@@ -215,7 +220,7 @@ public class RequestMasterService {
         RequestMasterTemplateFile entity = new RequestMasterTemplateFile();
         entity.setRequestMasterId(requestMasterId);
         entity.setFileNo(templateFileMapper.maxFileNo(requestMasterId) + 1);
-        entity.setFileName(storedFile.originalFilename());
+        entity.setFileName(storedFile.originalName());
         entity.setFilePath(storedFile.relativePath());
         entity.setRelevantCriteria(relevantCriteria);
         entity.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);

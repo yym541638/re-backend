@@ -175,9 +175,15 @@ public class ReportService {
         builder.append("# SOC 合规分析报告\n\n");
         builder.append("## 项目概况\n");
         builder.append("- 项目名称：").append(project.getProjectName()).append('\n');
-        builder.append("- 合规类型：").append(project.getComplianceType()).append('\n');
-        builder.append("- 审计类型：").append(project.getAuditType()).append('\n');
-        builder.append("- 当前版本：").append(project.getCurrentVersion()).append('\n');
+        if (project.getProjectInfo() != null && !project.getProjectInfo().isBlank()) {
+            builder.append("- 项目描述：").append(project.getProjectInfo()).append('\n');
+        }
+        if (project.getStartDate() != null) {
+            builder.append("- 开始时间：").append(project.getStartDate()).append('\n');
+        }
+        if (project.getEndDate() != null) {
+            builder.append("- 结束时间：").append(project.getEndDate()).append('\n');
+        }
         builder.append('\n');
 
         builder.append("## 评分概览\n");

@@ -232,13 +232,8 @@ public final class SocConstants {
 
     /** Projects. */
     public static final class Project {
-        public static final String CODE_PREFIX = "PRJ";
         public static final String INITIAL_VERSION = "V1";
         public static final int SOFT_DELETE_FLAG = 0;
-        /** 项目进行中（新建默认）。 */
-        public static final String STATUS_ACTIVE = "Active";
-        /** 项目已结束（Passing Scores 打分完成后）。 */
-        public static final String STATUS_END = "End";
     }
 
     /** File storage layout & allowed uploads. */

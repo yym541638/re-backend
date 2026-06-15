@@ -390,8 +390,8 @@ public class RequestController {
 
                                                            @RequestParam("file") MultipartFile file) {
 
-        return ApiResponse.success(requestService.uploadAttachment(requestId, file));
-
+       // return ApiResponse.success(requestService.uploadAttachment(requestId, file));
+          return null;
     }
 
 
@@ -442,7 +442,8 @@ public class RequestController {
 
                                                        @RequestParam("file") MultipartFile file) {
 
-        return ApiResponse.success(requestService.uploadAttachment(requestId, file));
+        //return ApiResponse.success(requestService.uploadAttachment(requestId, file));
+        return null;
 
     }
 

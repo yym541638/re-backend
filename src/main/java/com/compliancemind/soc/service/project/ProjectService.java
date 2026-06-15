@@ -29,7 +29,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -45,8 +44,6 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ProjectService {
-
-    private static final DateTimeFormatter CODE_FORMATTER = DateTimeFormatter.ofPattern(SocConstants.Format.COMPACT_TIMESTAMP);
 
     private static final List<Map.Entry<String, String>> PROJECT_ROLE_SLOTS = List.of(
         Map.entry(RoleCodes.COMPANY_ADMIN, "Administrator"),
@@ -135,7 +132,7 @@ public class ProjectService {
         Project project = authorizationService.requireProjectRead(projectId);
         List<ProjectMember> members = projectMemberMapper.listByProjectId(projectId);
         ProjectDetailResponse response = new ProjectDetailResponse();
-        response.setProject(project);
+        response.setProject(toListItem(project));
         response.setMembers(members);
         response.setRoleSlots(buildRoleSlots(members));
         return response;
@@ -151,14 +148,8 @@ public class ProjectService {
 
         Project project = new Project();
         project.setCompanyId(currentUser.getCompanyId());
-        project.setProjectCode(SocConstants.Project.CODE_PREFIX + CODE_FORMATTER.format(LocalDateTime.now()));
         project.setProjectName(request.getProjectName().trim());
         project.setProjectInfo(normalizeProjectInfo(request.getProjectInfo()));
-        project.setComplianceType(SocConstants.Ai.DEFAULT_COMPLIANCE_FRAMEWORK);
-        project.setAuditType(SocConstants.AuditType.DISPLAY_TYPE1);
-        project.setCurrentVersion(SocConstants.Project.INITIAL_VERSION);
-        project.setGapCount(0);
-        project.setStatus(SocConstants.Project.STATUS_ACTIVE);
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
         project.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);
@@ -168,7 +159,7 @@ public class ProjectService {
 
         List<ProjectMemberSaveRequest.MemberItem> memberItems =
             ensureCreatorInMembers(request.getMembers(), currentUser);
-        List<ProjectMember> savedMembers = persistMembers(
+        persistMembers(
             project.getProjectId(),
             currentUser.getCompanyId(),
             memberItems,
@@ -184,10 +175,7 @@ public class ProjectService {
             SocConstants.OperationLog.Detail.PROJECT_CREATE_ZH);
 
         ProjectCreateResponse response = new ProjectCreateResponse();
-        response.setProject(project);
-        response.setMembers(savedMembers);
-        response.setRoleSlots(buildRoleSlots(savedMembers));
-        response.setAttachments(List.of());
+        response.setProjectId(project.getProjectId());
         return response;
     }
 
@@ -255,11 +243,7 @@ public class ProjectService {
     @Transactional(rollbackFor = Exception.class)
     public void markProjectEnded(Long projectId) {
         authorizationService.requireProjectRead(projectId);
-        projectMapper.updateStatusAndEndDate(projectId,
-            SocConstants.Project.STATUS_END,
-            LocalDateTime.now(),
-            currentUserAccessor.requireUserId(),
-            SocConstants.Project.STATUS_ACTIVE);
+        projectMapper.updateEndDate(projectId, LocalDateTime.now(), currentUserAccessor.requireUserId());
     }
 
     private List<ProjectMember> replaceMembers(Long projectId,
@@ -379,16 +363,18 @@ public class ProjectService {
         if (projects == null || projects.isEmpty()) {
             return List.of();
         }
-        return projects.stream().map(project -> {
-            ProjectListItem item = new ProjectListItem();
-            item.setProjectId(project.getProjectId());
-            item.setProjectName(project.getProjectName());
-            item.setProjectInfo(project.getProjectInfo());
-            item.setStartDate(project.getStartDate());
-            item.setEndDate(project.getEndDate());
-            item.setLastModifiedDate(project.getUpdatedAt());
-            return item;
-        }).toList();
+        return projects.stream().map(this::toListItem).toList();
+    }
+
+    private ProjectListItem toListItem(Project project) {
+        ProjectListItem item = new ProjectListItem();
+        item.setProjectId(project.getProjectId());
+        item.setProjectName(project.getProjectName());
+        item.setProjectInfo(project.getProjectInfo());
+        item.setStartDate(project.getStartDate());
+        item.setEndDate(project.getEndDate());
+        item.setLastModifiedDate(project.getUpdatedAt());
+        return item;
     }
 
     private String normalizeProjectInfo(String projectInfo) {

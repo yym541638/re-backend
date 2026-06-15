@@ -46,7 +46,7 @@ public class ProjectController {
      * 新建项目（JSON）。
      *
      * <p>POST /project/create，需 JWT；仅公司管理员可创建。
-     * 请求体含项目基本信息及 {@code members} 项目维度角色分配（六个固定角色可部分填写）。</p>
+     * 成功时返回 {@code project_id}；详情请调用 GET /project/{projectId}。</p>
      */
     @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<ProjectCreateResponse> create(@Valid @RequestBody ProjectCreateRequest request) {
@@ -61,12 +61,10 @@ public class ProjectController {
      */
     @GetMapping("/list")
     public ApiResponse<PageResponse<ProjectListItem>> list(@RequestParam(value = "keyword", required = false) String keyword,
-                                                           @RequestParam(value = "status", required = false) String status,
                                                            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
                                                            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         ProjectQueryRequest request = new ProjectQueryRequest();
         request.setKeyword(keyword);
-        request.setStatus(status);
         request.setPageNum(pageNum);
         request.setPageSize(pageSize);
         return ApiResponse.page(projectService.list(request));

@@ -12,22 +12,10 @@ public class Project {
     private Long projectId;
     /** 所属公司 ID。 */
     private Integer companyId;
-    /** 项目编码（唯一）。 */
-    private String projectCode;
     /** 项目名称。 */
     private String projectName;
     /** 项目描述（Project Info）。 */
     private String projectInfo;
-    /** 合规类型（如 SOC2、ISO27001）。 */
-    private String complianceType;
-    /** 审计类型（Type1 / Type2）。 */
-    private String auditType;
-    /** 当前版本号（如 V1）。 */
-    private String currentVersion;
-    /** 差距分析条目数量。 */
-    private Integer gapCount;
-    /** 项目状态（如 IN_PROGRESS）。 */
-    private String status;
     /** 项目开始时间。 */
     private LocalDateTime startDate;
     /** 项目结束时间。 */
