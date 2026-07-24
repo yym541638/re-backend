@@ -4,6 +4,7 @@ import com.compliancemind.soc.common.api.PageResponse;
 import com.compliancemind.soc.common.constants.SocConstants;
 import com.compliancemind.soc.common.exception.BizErrorCode;
 import com.compliancemind.soc.common.exception.BizException;
+import com.compliancemind.soc.dto.project.ProjectAccessMatrixItem;
 import com.compliancemind.soc.dto.project.ProjectCompanyUserItem;
 import com.compliancemind.soc.dto.project.ProjectCreateRequest;
 import com.compliancemind.soc.dto.project.ProjectCreateResponse;
@@ -30,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -91,6 +94,43 @@ public class ProjectService {
         List<Project> list = projectMapper.listAllByMember(
             currentUser.getCompanyId(), currentUser.getUserId(), request);
         return PageResponse.of(total, request.getPageNum(), request.getPageSize(), toListItems(list));
+    }
+
+    /**
+     * Access Management 页：项目列表 + 各角色槽位已分配用户。
+     */
+    public PageResponse<ProjectAccessMatrixItem> listAccessMatrix(ProjectQueryRequest request) {
+        PageResponse<ProjectListItem> projects = list(request);
+        List<ProjectListItem> records = projects.getList() == null ? List.of() : projects.getList();
+        if (records.isEmpty()) {
+            return PageResponse.of(projects.getTotalCount(), projects.getPageNum(), projects.getPageSize(), List.of());
+        }
+
+        List<Long> projectIds = records.stream().map(ProjectListItem::getProjectId).toList();
+        Map<Long, List<ProjectMember>> membersByProject = groupMembersByProject(
+            projectMemberMapper.listByProjectIds(projectIds));
+
+        List<ProjectAccessMatrixItem> matrix = new ArrayList<>(records.size());
+        for (ProjectListItem project : records) {
+            ProjectAccessMatrixItem item = new ProjectAccessMatrixItem();
+            item.setProjectId(project.getProjectId());
+            item.setProjectName(project.getProjectName());
+            item.setRoleSlots(buildRoleSlots(
+                membersByProject.getOrDefault(project.getProjectId(), Collections.emptyList())));
+            matrix.add(item);
+        }
+        return PageResponse.of(projects.getTotalCount(), projects.getPageNum(), projects.getPageSize(), matrix);
+    }
+
+    private Map<Long, List<ProjectMember>> groupMembersByProject(List<ProjectMember> members) {
+        if (members == null || members.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, List<ProjectMember>> grouped = new HashMap<>();
+        for (ProjectMember member : members) {
+            grouped.computeIfAbsent(member.getProjectId(), key -> new ArrayList<>()).add(member);
+        }
+        return grouped;
     }
 
     private void applyPagination(ProjectQueryRequest request) {

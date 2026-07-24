@@ -365,11 +365,14 @@ public final class SocConstants {
             public static final String REQUEST_UPLOAD_ATTACHMENT_PREFIX_EN = "Upload attachment: ";
             public static final String REQUEST_DELETE_ATTACHMENT_PREFIX_EN = "Delete attachment: ";
             public static final String INVITE_CREATE_PREFIX_ZH = "创建邀请码：";
+            public static final String INVITE_REDEEM_PREFIX_ZH = "兑换邀请码：";
         }
     }
 
     /** Keys passed to {@link org.springframework.context.MessageSource}. */
     public static final class MessageKeys {
         public static final String INVITATION_VALIDATE_AVAILABLE = "invitation.validate.available";
+        public static final String INVITATION_REDEEM_SUCCESS = "invitation.redeem.success";
+        public static final String INVITATION_REDEEM_ALREADY_MEMBER = "invitation.redeem.already_member";
     }
 }

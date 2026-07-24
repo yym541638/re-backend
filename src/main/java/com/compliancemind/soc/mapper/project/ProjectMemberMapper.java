@@ -23,6 +23,20 @@ public interface ProjectMemberMapper {
     List<ProjectMember> listByProjectId(@Param("projectId") Long projectId);
 
     @Select("""
+        <script>
+        select member_id, project_id, user_id, member_role, display_name, email, deleted, created_by, updated_by, created_at, updated_at
+        from soc_project_member
+        where deleted = 0
+          and project_id in
+          <foreach collection="projectIds" item="projectId" open="(" separator="," close=")">
+            #{projectId}
+          </foreach>
+        order by project_id asc, member_id asc
+        </script>
+        """)
+    List<ProjectMember> listByProjectIds(@Param("projectIds") List<Long> projectIds);
+
+    @Select("""
         select member_id, project_id, user_id, member_role, display_name, email, deleted, created_by, updated_by, created_at, updated_at
         from soc_project_member
         where project_id = #{projectId} and user_id = #{userId} and deleted = 0

@@ -2,6 +2,7 @@ package com.compliancemind.soc.controller.project;
 
 import com.compliancemind.soc.common.api.ApiResponse;
 import com.compliancemind.soc.common.api.PageResponse;
+import com.compliancemind.soc.dto.project.ProjectAccessMatrixItem;
 import com.compliancemind.soc.dto.project.ProjectCompanyUserItem;
 import com.compliancemind.soc.dto.project.ProjectCreateRequest;
 import com.compliancemind.soc.dto.project.ProjectCreateResponse;
@@ -68,6 +69,25 @@ public class ProjectController {
         request.setPageNum(pageNum);
         request.setPageSize(pageSize);
         return ApiResponse.page(projectService.list(request));
+    }
+
+    /**
+     * Access Management：项目访问矩阵（项目行 × 角色列用户）。
+     *
+     * <p>GET /project/access-management?keyword=&amp;pageNum=&amp;pageSize=，需 JWT。
+     * 每行含 project_id、project_name、role_slots（六角色及已分配用户）。
+     * Invite 使用 POST /invitation-code/project/create；兑换码使用 POST /invitation-code/redeem。</p>
+     */
+    @GetMapping("/access-management")
+    public ApiResponse<PageResponse<ProjectAccessMatrixItem>> accessManagement(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
+        ProjectQueryRequest request = new ProjectQueryRequest();
+        request.setKeyword(keyword);
+        request.setPageNum(pageNum);
+        request.setPageSize(pageSize);
+        return ApiResponse.page(projectService.listAccessMatrix(request));
     }
 
     /**

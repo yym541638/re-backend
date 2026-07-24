@@ -39,6 +39,7 @@ public enum BizErrorCode {
     PROJECT_MEMBER_USER_NOT_IN_COMPANY(400, "error.project.member_user_not_in_company"),
     PROJECT_MEMBER_DUPLICATE_USER(400, "error.project.member_duplicate_user"),
     PROJECT_MEMBER_MANAGER_REQUIRED(400, "error.project.member_manager_required"),
+    PROJECT_MEMBER_ROLE_OCCUPIED(400, "error.project.member_role_occupied"),
 
     COMMERCE_PRODUCT_NOT_FOUND(404, "error.commerce.product_not_found"),
     COMMERCE_USER_PRODUCT_NOT_FOUND(404, "error.commerce.user_product_not_found"),
@@ -86,6 +87,8 @@ public enum BizErrorCode {
     INVITATION_USED(400, "error.invitation.used"),
     INVITATION_EXPIRED(400, "error.invitation.expired"),
     INVITATION_UNAVAILABLE(400, "error.invitation.unavailable"),
+    INVITATION_PROJECT_REQUIRED(400, "error.invitation.project_required"),
+    INVITATION_COMPANY_MISMATCH(403, "error.invitation.company_mismatch"),
 
     RCM_EXCEL_PARSE_FAILED(500, "error.rcm.excel.parse_failed"),
     RCM_EXCEL_EXPORT_FAILED(500, "error.rcm.excel.export_failed"),

@@ -9,6 +9,7 @@ import com.compliancemind.soc.common.exception.BizException;
 import com.compliancemind.soc.common.i18n.LocalizedMessageResolver;
 import com.compliancemind.soc.dto.invitation.InvitationCreateRequest;
 import com.compliancemind.soc.dto.invitation.InvitationQueryRequest;
+import com.compliancemind.soc.dto.invitation.InvitationRedeemResponse;
 import com.compliancemind.soc.dto.invitation.InvitationValidateResponse;
 import com.compliancemind.soc.entity.invitation.InvitationCode;
 import com.compliancemind.soc.mapper.invitation.InvitationCodeMapper;
@@ -125,6 +126,63 @@ public class InvitationCodeService {
         }
         response.setValid(true);
         response.setMessage(localizedMessageResolver.message(SocConstants.MessageKeys.INVITATION_VALIDATE_AVAILABLE));
+        return response;
+    }
+
+    /**
+     * 查询 Document Owner 候选等场景外：Access Management 登录态兑换邀请码。
+     * <p>将当前用户加入邀请码绑定项目的对应角色槽位；已是成员则不重复消费额度。</p>
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public InvitationRedeemResponse redeemForCurrentUser(String code) {
+        if (code == null || code.isBlank()) {
+            throw new BizException(BizErrorCode.INVITATION_NOT_FOUND);
+        }
+        UserAccount currentUser = authorizationService.currentUser();
+        InvitationCode invitationCode = requireUsableCode(code.trim());
+        if (invitationCode.getProjectId() == null) {
+            throw new BizException(BizErrorCode.INVITATION_PROJECT_REQUIRED);
+        }
+        if (!currentUser.getCompanyId().equals(invitationCode.getCompanyId())) {
+            throw new BizException(BizErrorCode.INVITATION_COMPANY_MISMATCH);
+        }
+
+        Project project = projectMapper.selectById(invitationCode.getProjectId());
+        if (project == null) {
+            throw new BizException(BizErrorCode.PROJECT_NOT_FOUND);
+        }
+
+        InvitationRedeemResponse response = new InvitationRedeemResponse();
+        response.setProjectId(project.getProjectId());
+        response.setProjectName(project.getProjectName());
+        response.setMemberRole(defaultRole(invitationCode.getMemberRole()));
+
+        ProjectMember existed = projectMemberMapper.selectByProjectIdAndUserId(
+            invitationCode.getProjectId(), currentUser.getUserId());
+        if (existed != null) {
+            response.setAlreadyMember(true);
+            response.setMemberRole(defaultRole(existed.getMemberRole()));
+            response.setMessage(localizedMessageResolver.message(SocConstants.MessageKeys.INVITATION_REDEEM_ALREADY_MEMBER));
+            return response;
+        }
+
+        String targetRole = defaultRole(invitationCode.getMemberRole());
+        boolean roleOccupied = projectMemberMapper.listByProjectId(invitationCode.getProjectId()).stream()
+            .anyMatch(member -> targetRole.equals(RoleCodes.normalizeProjectRole(member.getMemberRole())));
+        if (roleOccupied) {
+            throw new BizException(BizErrorCode.PROJECT_MEMBER_ROLE_OCCUPIED);
+        }
+
+        consumeForUser(invitationCode, currentUser);
+        response.setAlreadyMember(false);
+        response.setMessage(localizedMessageResolver.message(SocConstants.MessageKeys.INVITATION_REDEEM_SUCCESS));
+        operationLogService.record(SocConstants.OperationLog.Module.INVITATION_CODE,
+            SocConstants.OperationLog.Action.UPDATE,
+            SocConstants.OperationLog.EntityType.PROJECT,
+            String.valueOf(project.getProjectId()),
+            project.getProjectName(),
+            project.getProjectId(),
+            SocConstants.OperationLog.Detail.INVITE_REDEEM_PREFIX_ZH + invitationCode.getCode());
         return response;
     }
 
