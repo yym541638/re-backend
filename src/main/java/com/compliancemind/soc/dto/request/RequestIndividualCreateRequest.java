@@ -1,7 +1,6 @@
 package com.compliancemind.soc.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -12,9 +11,13 @@ public class RequestIndividualCreateRequest {
     @JsonAlias({"request_master_id"})
     private Long requestMasterId;
 
-    @NotBlank(message = "Request Name 不能为空")
+    /** 为空时后台自动生成唯一键（与 request_code 同规则）。 */
     @JsonAlias({"request_name", "title", "name"})
     private String requestName;
+
+    /** 标准条款目录行 ID；Generate 灌入时必填。 */
+    @JsonAlias({"catalog_id"})
+    private Long catalogId;
 
     @JsonAlias({"cc_criteria", "type"})
     private String ccCriteria;

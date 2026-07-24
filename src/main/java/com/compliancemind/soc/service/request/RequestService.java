@@ -140,11 +140,13 @@ public class RequestService {
         authorizationService.requireProjectWrite(master.getProjectId());
         Integer operatorId = currentUserAccessor.requireUserId();
 
+        boolean autoName = request.getRequestName() == null || request.getRequestName().isBlank();
         ComplianceRequest entity = new ComplianceRequest();
         entity.setProjectId(master.getProjectId());
         entity.setRequestMasterId(master.getRequestMasterId());
+        entity.setCatalogId(request.getCatalogId());
         entity.setRequestCode("TEMP");
-        entity.setTitle(request.getRequestName().trim());
+        entity.setTitle(autoName ? "TEMP" : request.getRequestName().trim());
         entity.setCcCriteria(defaultText(request.getCcCriteria(), SocConstants.Rcm.CC_DEFAULT_SECURITY));
         entity.setPointsOfFocus(defaultText(request.getPointsOfFocus(), derivePointsOfFocus(entity.getCcCriteria())));
         entity.setRequestDescription(request.getRequestDescription());
@@ -161,7 +163,11 @@ public class RequestService {
         entity.setUpdatedBy(operatorId);
         complianceRequestMapper.insert(entity);
 
-        entity.setRequestCode(buildRequestCode(entity.getRequestId()));
+        String requestCode = buildRequestCode(entity.getRequestId());
+        entity.setRequestCode(requestCode);
+        if (autoName || "TEMP".equals(entity.getTitle())) {
+            entity.setTitle(requestCode);
+        }
         complianceRequestMapper.update(entity);
 
         saveSnapshot(entity, SocConstants.OperationLog.Detail.RCM_SNAPSHOT_INITIAL_VERSION_EN);

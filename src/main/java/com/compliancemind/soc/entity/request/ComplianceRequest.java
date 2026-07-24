@@ -13,6 +13,8 @@ public class ComplianceRequest {
     private Long projectId;
     /** 所属 Request Master ID。 */
     private Long requestMasterId;
+    /** 来源标准条款目录行 ID（Generate 灌入时写入）。 */
+    private Long catalogId;
     private String requestCode;
     private String ccCriteria;
     private String title;

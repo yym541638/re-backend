@@ -17,10 +17,14 @@ import com.compliancemind.soc.dto.request.RequestMasterUpdateRequest;
 import com.compliancemind.soc.dto.request.RequestMasterVersionDetailResponse;
 import com.compliancemind.soc.dto.request.RequestMasterVersionListItem;
 import com.compliancemind.soc.entity.project.Project;
+import com.compliancemind.soc.entity.request.RequestCriteriaCatalog;
 import com.compliancemind.soc.entity.request.RequestMaster;
 import com.compliancemind.soc.entity.request.RequestMasterTemplateFile;
 import com.compliancemind.soc.entity.request.RequestMasterVersion;
+import com.compliancemind.soc.mapper.commerce.UserProductMapper;
+import com.compliancemind.soc.mapper.project.ProjectMapper;
 import com.compliancemind.soc.mapper.request.ComplianceRequestMapper;
+import com.compliancemind.soc.mapper.request.RequestCriteriaCatalogMapper;
 import com.compliancemind.soc.mapper.request.RequestMasterMapper;
 import com.compliancemind.soc.mapper.request.RequestMasterTemplateFileMapper;
 import com.compliancemind.soc.mapper.request.RequestMasterVersionMapper;
@@ -39,8 +43,10 @@ import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Request Master 业务（PRD 2.5.2）：列表、详情、CRUD。
@@ -66,6 +72,9 @@ public class RequestMasterService {
     private final RequestMasterTemplateFileMapper templateFileMapper;
     private final RequestMasterVersionMapper versionMapper;
     private final ComplianceRequestMapper complianceRequestMapper;
+    private final RequestCriteriaCatalogMapper criteriaCatalogMapper;
+    private final UserProductMapper userProductMapper;
+    private final ProjectMapper projectMapper;
     private final RequestService requestService;
     private final AuthorizationService authorizationService;
     private final CurrentUserAccessor currentUserAccessor;
@@ -77,6 +86,9 @@ public class RequestMasterService {
                                 RequestMasterTemplateFileMapper templateFileMapper,
                                 RequestMasterVersionMapper versionMapper,
                                 ComplianceRequestMapper complianceRequestMapper,
+                                RequestCriteriaCatalogMapper criteriaCatalogMapper,
+                                UserProductMapper userProductMapper,
+                                ProjectMapper projectMapper,
                                 RequestService requestService,
                                 AuthorizationService authorizationService,
                                 CurrentUserAccessor currentUserAccessor,
@@ -87,6 +99,9 @@ public class RequestMasterService {
         this.templateFileMapper = templateFileMapper;
         this.versionMapper = versionMapper;
         this.complianceRequestMapper = complianceRequestMapper;
+        this.criteriaCatalogMapper = criteriaCatalogMapper;
+        this.userProductMapper = userProductMapper;
+        this.projectMapper = projectMapper;
         this.requestService = requestService;
         this.authorizationService = authorizationService;
         this.currentUserAccessor = currentUserAccessor;
@@ -292,28 +307,112 @@ public class RequestMasterService {
     public List<RequestIndividualListItem> generateIndividuals(Long requestMasterId) {
         RequestMaster master = requireOwnedRequestMaster(requestMasterId);
         authorizationService.requireProjectWrite(master.getProjectId());
-        List<RequestMasterTemplateFile> templates = templateFileMapper.listAllByMasterId(requestMasterId);
-        if (templates.isEmpty()) {
-            throw new BizException(BizErrorCode.REQUEST_MASTER_GENERATE_EMPTY);
+        Project project = projectMapper.selectById(master.getProjectId());
+        if (project == null) {
+            throw new BizException(BizErrorCode.PROJECT_NOT_FOUND);
         }
+
+        Set<String> modules = resolvePurchasedModules(project.getCompanyId());
+        if (modules.isEmpty()) {
+            throw new BizException(BizErrorCode.REQUEST_MASTER_GENERATE_NO_PURCHASE);
+        }
+
+        List<RequestCriteriaCatalog> catalogs = criteriaCatalogMapper.listByModuleNames(modules);
+        if (catalogs.isEmpty()) {
+            throw new BizException(BizErrorCode.REQUEST_MASTER_CATALOG_EMPTY);
+        }
+
         List<RequestIndividualListItem> generated = new ArrayList<>();
-        for (RequestMasterTemplateFile template : templates) {
-            String criteria = defaultCriteria(template);
-            if (complianceRequestMapper.countByMasterAndCriteria(requestMasterId, criteria) > 0) {
+        for (RequestCriteriaCatalog catalog : catalogs) {
+            if (complianceRequestMapper.countByMasterAndCatalogId(
+                    requestMasterId, catalog.getCatalogId()) > 0) {
                 continue;
             }
             RequestIndividualCreateRequest createRequest = new RequestIndividualCreateRequest();
             createRequest.setRequestMasterId(requestMasterId);
-            createRequest.setRequestName(buildGeneratedName(template, criteria));
-            createRequest.setCcCriteria(criteria);
-            createRequest.setPointsOfFocus("Points of focus for " + criteria);
-            createRequest.setRequestDescription("Auto-generated from template file: " + template.getFileName());
+            createRequest.setCatalogId(catalog.getCatalogId());
+            createRequest.setCcCriteria(catalog.getCriteriaCode());
+            createRequest.setPointsOfFocus(catalog.getPointsOfFocus());
+            createRequest.setRequestDescription(buildCatalogDescription(catalog));
             generated.add(toIndividualListItem(requestService.createIndividual(createRequest)));
         }
         if (generated.isEmpty()) {
             generated = requestService.listIndividuals(requestMasterId);
         }
         return generated;
+    }
+
+    private Set<String> resolvePurchasedModules(Integer companyId) {
+        List<String> featureJsonList = userProductMapper.listActiveIncludedFeaturesByCompanyId(companyId);
+        Set<String> modules = new LinkedHashSet<>();
+        if (featureJsonList == null || featureJsonList.isEmpty()) {
+            return modules;
+        }
+        for (String featureJson : featureJsonList) {
+            modules.addAll(parseFeatureModules(featureJson));
+        }
+        return modules;
+    }
+
+    private Set<String> parseFeatureModules(String featureJson) {
+        Set<String> modules = new LinkedHashSet<>();
+        if (featureJson == null || featureJson.isBlank()) {
+            return modules;
+        }
+        try {
+            List<String> features = objectMapper.readValue(featureJson, new TypeReference<List<String>>() {
+            });
+            if (features == null) {
+                return modules;
+            }
+            for (String feature : features) {
+                String module = normalizeFeatureToModule(feature);
+                if (module != null) {
+                    modules.add(module);
+                }
+            }
+        } catch (IOException ignored) {
+            String module = normalizeFeatureToModule(featureJson.trim());
+            if (module != null) {
+                modules.add(module);
+            }
+        }
+        return modules;
+    }
+
+    private String normalizeFeatureToModule(String feature) {
+        if (feature == null || feature.isBlank()) {
+            return null;
+        }
+        String normalized = feature.trim().toLowerCase(Locale.ROOT).replace('_', ' ');
+        if (normalized.contains("availability")) {
+            return SocConstants.Rcm.MODULE_AVAILABILITY;
+        }
+        if (normalized.contains("confidential")) {
+            return SocConstants.Rcm.MODULE_CONFIDENTIALITY;
+        }
+        if (normalized.contains("privacy")) {
+            return SocConstants.Rcm.MODULE_PRIVACY;
+        }
+        if (normalized.contains("process")) {
+            return SocConstants.Rcm.MODULE_PROCESSING_INTEGRITY;
+        }
+        if (normalized.contains("security") || normalized.equals("secure")) {
+            return SocConstants.Rcm.MODULE_SECURITY;
+        }
+        return null;
+    }
+
+    private String buildCatalogDescription(RequestCriteriaCatalog catalog) {
+        String requirement = catalog.getRequirement() == null ? "" : catalog.getRequirement().trim();
+        String document = catalog.getDocumentDescription() == null ? "" : catalog.getDocumentDescription().trim();
+        if (requirement.isEmpty()) {
+            return document;
+        }
+        if (document.isEmpty()) {
+            return requirement;
+        }
+        return requirement + "\n" + document;
     }
 
     private RequestIndividualListItem toIndividualListItem(RequestIndividualDetailResponse detail) {
@@ -333,21 +432,6 @@ public class RequestMasterService {
         item.setRequestIndividualReviewComment(detail.getAiCommentContent());
         item.setCommentContent(detail.getCommentContent());
         return item;
-    }
-
-    private String defaultCriteria(RequestMasterTemplateFile template) {
-        if (template.getRelevantCriteria() != null && !template.getRelevantCriteria().isBlank()) {
-            return template.getRelevantCriteria().trim();
-        }
-        return "CC" + template.getFileNo();
-    }
-
-    private String buildGeneratedName(RequestMasterTemplateFile template, String criteria) {
-        if (template.getFileName() != null && !template.getFileName().isBlank()) {
-            int dot = template.getFileName().lastIndexOf('.');
-            return dot > 0 ? template.getFileName().substring(0, dot) : template.getFileName();
-        }
-        return criteria + " Request";
     }
 
     private RequestMasterTemplateFileItem toTemplateFileItem(RequestMasterTemplateFile file) {

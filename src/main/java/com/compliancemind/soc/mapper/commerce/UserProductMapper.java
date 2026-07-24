@@ -49,6 +49,17 @@ public interface UserProductMapper {
     UserProduct selectByUserIdAndProductId(@Param("userId") Integer userId,
                                            @Param("productId") Integer productId);
 
+    @Select("""
+        select included_features
+        from sys_user_product up
+        inner join sys_user u on u.user_id = up.user_id
+        where u.company_id = #{companyId}
+          and up.status = 'ACTIVE'
+          and up.included_features is not null
+          and up.included_features <> ''
+        """)
+    List<String> listActiveIncludedFeaturesByCompanyId(@Param("companyId") Integer companyId);
+
     @Insert("""
         insert into sys_user_product(user_id, product_id, product_name, package_id, audit_type, included_features, source_order_no,
                                      status, start_time, end_time, created_at, updated_at)

@@ -66,7 +66,7 @@ public class RequestIndividualController {
     }
 
     /**
-     * 按模板/目录批量生成 Individual。
+     * 按已购套餐范围，从标准条款库生成单条材料任务。
      *
      * <p>POST /request/individual/generate?requestMasterId=</p>
      */

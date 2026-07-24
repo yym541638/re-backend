@@ -17,7 +17,7 @@ public interface ComplianceRequestMapper {
 
     @Select({
         "<script>",
-        "select request_id, project_id, request_master_id, request_code, cc_criteria, title, request_description, points_of_focus,",
+        "select request_id, project_id, request_master_id, catalog_id, request_code, cc_criteria, title, request_description, points_of_focus,",
         "document_status, evidence_manual_status, document_owner, request_assignee, document_owner_user_id,",
         "implementation_date, last_update_at, request_send_date, ai_review_status, ai_review_comment, user_comment,",
         "notes, requestor, comments, current_version, deleted, created_by, updated_by, created_at, updated_at",
@@ -41,7 +41,7 @@ public interface ComplianceRequestMapper {
     List<ComplianceRequest> listAll(@Param("query") RequestQueryRequest query);
 
     @Select("""
-        select request_id, project_id, request_master_id, request_code, cc_criteria, title, request_description, points_of_focus,
+        select request_id, project_id, request_master_id, catalog_id, request_code, cc_criteria, title, request_description, points_of_focus,
                document_status, evidence_manual_status, document_owner, request_assignee, document_owner_user_id,
                implementation_date, last_update_at, request_send_date, ai_review_status, ai_review_comment, user_comment,
                notes, requestor, comments, current_version, deleted, created_by, updated_by, created_at, updated_at
@@ -53,17 +53,17 @@ public interface ComplianceRequestMapper {
     @Select("""
         select count(1) from soc_request
         where deleted = 0 and request_master_id = #{requestMasterId}
-          and cc_criteria = #{ccCriteria}
+          and catalog_id = #{catalogId}
         """)
-    long countByMasterAndCriteria(@Param("requestMasterId") Long requestMasterId,
-                                  @Param("ccCriteria") String ccCriteria);
+    long countByMasterAndCatalogId(@Param("requestMasterId") Long requestMasterId,
+                                   @Param("catalogId") Long catalogId);
 
     @Insert("""
-        insert into soc_request(project_id, request_master_id, request_code, cc_criteria, title, request_description, points_of_focus,
+        insert into soc_request(project_id, request_master_id, catalog_id, request_code, cc_criteria, title, request_description, points_of_focus,
                                 document_status, evidence_manual_status, document_owner, request_assignee, document_owner_user_id,
                                 implementation_date, last_update_at, request_send_date, ai_review_status, ai_review_comment, user_comment,
                                 notes, requestor, comments, current_version, deleted, created_by, updated_by, created_at, updated_at)
-        values(#{projectId}, #{requestMasterId}, #{requestCode}, #{ccCriteria}, #{title}, #{requestDescription}, #{pointsOfFocus},
+        values(#{projectId}, #{requestMasterId}, #{catalogId}, #{requestCode}, #{ccCriteria}, #{title}, #{requestDescription}, #{pointsOfFocus},
                #{documentStatus}, #{evidenceManualStatus}, #{documentOwner}, #{requestAssignee}, #{documentOwnerUserId},
                #{implementationDate}, #{lastUpdateAt}, #{requestSendDate}, #{aiReviewStatus}, #{aiReviewComment}, #{userComment},
                #{notes}, #{requestor}, #{comments}, #{currentVersion}, #{deleted}, #{createdBy}, #{updatedBy}, now(), now())
@@ -74,6 +74,7 @@ public interface ComplianceRequestMapper {
     @Update("""
         update soc_request
         set request_code = #{requestCode},
+            catalog_id = #{catalogId},
             cc_criteria = #{ccCriteria},
             title = #{title},
             request_description = #{requestDescription},

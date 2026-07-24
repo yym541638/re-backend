@@ -67,6 +67,8 @@ public enum BizErrorCode {
     REQUEST_MASTER_TEMPLATE_NOT_FOUND(404, "error.request_master.template_not_found"),
     REQUEST_MASTER_VERSION_NOT_FOUND(404, "error.request_master.version_not_found"),
     REQUEST_MASTER_GENERATE_EMPTY(400, "error.request_master.generate_empty"),
+    REQUEST_MASTER_GENERATE_NO_PURCHASE(400, "error.request_master.generate_no_purchase"),
+    REQUEST_MASTER_CATALOG_EMPTY(400, "error.request_master.catalog_empty"),
 
     REPORT_NOT_READY(400, "error.report.not_ready"),
     REPORT_FILE_NOT_FOUND(404, "error.report.file_not_found"),
