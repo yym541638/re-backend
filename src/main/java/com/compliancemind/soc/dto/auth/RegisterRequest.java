@@ -30,12 +30,22 @@ public class RegisterRequest {
 
     /**
      * 公司权限（注册页 Permissions 下拉）：Admin / Document Owner / General User / Manager tier1 / Manager tier2。
+     * <p>推荐传编码：{@code COMP_ADMIN} / {@code DOCUMENT_OWNER} / {@code GENERAL_USER} / {@code MANAGER} / {@code MANAGER_2}。
+     * 也兼容 UI 文案，如 {@code administrator}。</p>
      */
     @JsonAlias({"permissions", "permission", "permissionCode"})
     private String permissionCode;
 
     /**
-     * 兼容旧版请求：曾用 role / roleCode 传权限编码。
+     * 用户类型（注册页 User Type）：Clients / Consultant / Auditor。
+     * <p>存库字段 {@code user_type}，编码：{@code CLIENT} / {@code CONSULTANT} / {@code AUDITOR}。</p>
+     */
+    @JsonAlias({"userType", "user_type"})
+    private String userType;
+
+    /**
+     * 兼容字段：可为权限编码，也可为用户类型（如 {@code clients}）。
+     * <p>当 {@link #permissionCode} / {@link #userType} 已分别传入时，本字段可省略。</p>
      */
     @JsonAlias({"role", "roleCode"})
     private String roleCode;

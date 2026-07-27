@@ -60,6 +60,18 @@ public interface UserProductMapper {
         """)
     List<String> listActiveIncludedFeaturesByCompanyId(@Param("companyId") Integer companyId);
 
+    @Select("""
+        select up.user_product_id, up.user_id, up.product_id, up.product_name, up.package_id, up.audit_type,
+               up.included_features, up.source_order_no, up.status, up.start_time, up.end_time,
+               up.created_at, up.updated_at
+        from sys_user_product up
+        inner join sys_user u on u.user_id = up.user_id
+        where u.company_id = #{companyId}
+          and up.status = 'ACTIVE'
+        order by up.user_product_id asc
+        """)
+    List<UserProduct> listActiveByCompanyId(@Param("companyId") Integer companyId);
+
     @Insert("""
         insert into sys_user_product(user_id, product_id, product_name, package_id, audit_type, included_features, source_order_no,
                                      status, start_time, end_time, created_at, updated_at)

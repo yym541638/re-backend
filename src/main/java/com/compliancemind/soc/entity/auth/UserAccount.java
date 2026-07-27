@@ -22,6 +22,11 @@ public class UserAccount {
     private String avatarUrl;
     /** 职位。 */
     private String jobTitle;
+    /**
+     * 用户类型：CLIENT / CONSULTANT / AUDITOR（对应前端 Clients / Consultant / Auditor）。
+     * 与 {@link #roleCode}（公司权限）分离。
+     */
+    private String userType;
     /** 密码哈希值。 */
     private String passwordHash;
     /** 公司权限代码（如 GENERAL_USER、COMP_ADMIN）。 */

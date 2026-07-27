@@ -38,11 +38,15 @@ public final class RoleCodes {
     public static String normalizeCompanyRole(String roleCode) {
         String normalized = normalizeToken(roleCode);
         return switch (normalized) {
-            case "", "USER", "GENERALUSER", "GENERAL_USER" -> GENERAL_USER;
-            case "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN", "ADMINISTRATOR" -> COMPANY_ADMIN;
-            case "DOCUMENTOWNER", "DOCUMENT_OWNER" -> DOCUMENT_OWNER;
-            case "MANAGER", "MANAGERTIER1", "MANAGER_TIER1", "MANAGER_TIER_1" -> MANAGER;
-            case "MANAGER2", "MANAGER_2", "MANAGERTIER2", "MANAGER_TIER2", "MANAGER_TIER_2" -> MANAGER_2;
+            case "", "USER", "GENERALUSER", "GENERAL_USER", "GENERAL" -> GENERAL_USER;
+            case "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN",
+                 "ADMINISTRATOR", "ADMINISTRATOR_ONLY_1_ACCOUNT" -> COMPANY_ADMIN;
+            case "DOCUMENTOWNER", "DOCUMENT_OWNER", "DOCUMENT" -> DOCUMENT_OWNER;
+            case "MANAGER", "MANAGERTIER1", "MANAGER_TIER1", "MANAGER_TIER_1",
+                 "1ST_TIER_MANAGER_USER", "FIRST_TIER_MANAGER_USER", "MANAGER_TIER1_USER" -> MANAGER;
+            case "MANAGER2", "MANAGER_2", "MANAGERTIER2", "MANAGER_TIER2", "MANAGER_TIER_2",
+                 "2ND_TIER_MANAGER_USER", "2ND_TIER_MANAGER_USER_1", "SECOND_TIER_MANAGER_USER",
+                 "MANAGER_TIER2_USER" -> MANAGER_2;
             default -> normalized;
         };
     }
@@ -107,7 +111,13 @@ public final class RoleCodes {
         if (roleCode == null) {
             return "";
         }
-        return roleCode.trim()
+        String value = roleCode.trim();
+        // 前端下拉文案常带说明：administrator(Only 1 account) → administrator
+        int paren = value.indexOf('(');
+        if (paren > 0) {
+            value = value.substring(0, paren).trim();
+        }
+        return value
             .replace('-', '_')
             .replace(' ', '_')
             .toUpperCase(Locale.ROOT);

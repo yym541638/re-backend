@@ -21,6 +21,7 @@ public enum BizErrorCode {
     AUTH_INVITATION_COMPANY_MISSING(400, "error.auth.invitation_company_missing"),
     AUTH_USER_NOT_FOUND(404, "error.auth.user_not_found"),
     AUTH_UNSUPPORTED_USER_ROLE(400, "error.auth.unsupported_user_role"),
+    AUTH_UNSUPPORTED_USER_TYPE(400, "error.auth.unsupported_user_type"),
     AUTH_PERMISSION_REQUIRED(400, "error.auth.permission_required"),
     AUTH_COMPANY_ADMIN_EXISTS(400, "error.auth.company_admin_exists"),
     AUTH_DISPLAY_NAME_REQUIRED(400, "error.auth.display_name_required"),

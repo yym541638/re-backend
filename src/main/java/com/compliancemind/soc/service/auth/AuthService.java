@@ -17,6 +17,7 @@ import com.compliancemind.soc.service.invitation.InvitationCodeService;
 import com.compliancemind.soc.security.CurrentUserAccessor;
 import com.compliancemind.soc.security.JwtService;
 import com.compliancemind.soc.security.RoleCodes;
+import com.compliancemind.soc.security.UserTypes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -104,8 +105,10 @@ public class AuthService {
         userAccount.setPhone(request.getPhone().trim());
         userAccount.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         String permissionCode = resolvePermissionCode(request);
+        String userType = resolveUserType(request);
         ensureCompanyAdminAssignable(company.getCompanyId(), permissionCode);
         userAccount.setRoleCode(permissionCode);
+        userAccount.setUserType(userType);
         userAccount.setStatus(SocConstants.Account.STATUS_ENABLED);
         userAccountMapper.insert(userAccount);
         // 注册时若填写了邀请码，消费邀请码并将用户加入对应项目
@@ -167,16 +170,36 @@ public class AuthService {
         userInfo.setPhone(userAccount.getPhone());
         userInfo.setAvatarUrl(userAccount.getAvatarUrl());
         userInfo.setJobTitle(userAccount.getJobTitle());
+        // 用户类型：CLIENT / CONSULTANT / AUDITOR
+        userInfo.setUserType(UserTypes.normalize(userAccount.getUserType()));
         // 归一化后的权限，序列化为 user_info.role
         userInfo.setRoleCode(roleCode);
         response.setUser(userInfo);
         return response;
     }
 
+    private String resolveUserType(RegisterRequest request) {
+        String raw = request.getUserType();
+        if (raw == null || raw.isBlank()) {
+            // 前端常把 Clients 放在 roleCode
+            if (UserTypes.isUserType(request.getRoleCode())) {
+                raw = request.getRoleCode();
+            }
+        }
+        String normalized = UserTypes.normalize(raw);
+        if (!UserTypes.isSupported(normalized)) {
+            throw new BizException(BizErrorCode.AUTH_UNSUPPORTED_USER_TYPE);
+        }
+        return normalized;
+    }
+
     private String resolvePermissionCode(RegisterRequest request) {
         String raw = request.getPermissionCode();
         if (raw == null || raw.isBlank()) {
-            raw = request.getRoleCode();
+            // roleCode 若是用户类型则不能当作权限
+            if (!UserTypes.isUserType(request.getRoleCode())) {
+                raw = request.getRoleCode();
+            }
         }
         if (raw == null || raw.isBlank()) {
             throw new BizException(BizErrorCode.AUTH_PERMISSION_REQUIRED);

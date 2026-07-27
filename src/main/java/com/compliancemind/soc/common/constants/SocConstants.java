@@ -42,6 +42,9 @@ public final class SocConstants {
         public static final String PATH_PAYMENT_QUERY = "/payment/query/**";
         public static final String PATH_PAYMENT_NOTIFY = "/payment/notify";
         public static final String PATH_PAYMENT_MOCK_SUCCESS = "/payment/mock/success";
+        public static final String PATH_SWAGGER_UI = "/swagger-ui/**";
+        public static final String PATH_SWAGGER_UI_HTML = "/swagger-ui.html";
+        public static final String PATH_V3_API_DOCS = "/v3/api-docs/**";
 
         public static final String[] PERMIT_ALL_PATHS = {
             PATH_AUTH_LOGIN,
@@ -52,7 +55,10 @@ public final class SocConstants {
             PATH_PRODUCT_PACKAGES,
             PATH_PAYMENT_QUERY,
             PATH_PAYMENT_NOTIFY,
-            PATH_PAYMENT_MOCK_SUCCESS
+            PATH_PAYMENT_MOCK_SUCCESS,
+            PATH_SWAGGER_UI,
+            PATH_SWAGGER_UI_HTML,
+            PATH_V3_API_DOCS
         };
     }
 

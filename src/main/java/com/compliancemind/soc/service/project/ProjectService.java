@@ -25,6 +25,7 @@ import com.compliancemind.soc.mapper.project.ProjectMemberMapper;
 import com.compliancemind.soc.security.AuthorizationService;
 import com.compliancemind.soc.security.CurrentUserAccessor;
 import com.compliancemind.soc.security.RoleCodes;
+import com.compliancemind.soc.security.UserTypes;
 import com.compliancemind.soc.service.operationlog.OperationLogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -439,6 +440,7 @@ public class ProjectService {
         item.setEmail(user.getEmail());
         item.setPhone(user.getPhone());
         item.setPermissionCode(RoleCodes.normalizeCompanyRole(user.getRoleCode()));
+        item.setUserType(UserTypes.normalize(user.getUserType()));
         return item;
     }
 }

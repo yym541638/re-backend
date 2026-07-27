@@ -16,11 +16,14 @@ import com.compliancemind.soc.dto.request.RequestMasterTemplateFileItem;
 import com.compliancemind.soc.dto.request.RequestMasterUpdateRequest;
 import com.compliancemind.soc.dto.request.RequestMasterVersionDetailResponse;
 import com.compliancemind.soc.dto.request.RequestMasterVersionListItem;
+import com.compliancemind.soc.entity.commerce.ProductPackage;
+import com.compliancemind.soc.entity.commerce.UserProduct;
 import com.compliancemind.soc.entity.project.Project;
 import com.compliancemind.soc.entity.request.RequestCriteriaCatalog;
 import com.compliancemind.soc.entity.request.RequestMaster;
 import com.compliancemind.soc.entity.request.RequestMasterTemplateFile;
 import com.compliancemind.soc.entity.request.RequestMasterVersion;
+import com.compliancemind.soc.mapper.commerce.ProductMapper;
 import com.compliancemind.soc.mapper.commerce.UserProductMapper;
 import com.compliancemind.soc.mapper.project.ProjectMapper;
 import com.compliancemind.soc.mapper.request.ComplianceRequestMapper;
@@ -74,6 +77,7 @@ public class RequestMasterService {
     private final ComplianceRequestMapper complianceRequestMapper;
     private final RequestCriteriaCatalogMapper criteriaCatalogMapper;
     private final UserProductMapper userProductMapper;
+    private final ProductMapper productMapper;
     private final ProjectMapper projectMapper;
     private final RequestService requestService;
     private final AuthorizationService authorizationService;
@@ -88,6 +92,7 @@ public class RequestMasterService {
                                 ComplianceRequestMapper complianceRequestMapper,
                                 RequestCriteriaCatalogMapper criteriaCatalogMapper,
                                 UserProductMapper userProductMapper,
+                                ProductMapper productMapper,
                                 ProjectMapper projectMapper,
                                 RequestService requestService,
                                 AuthorizationService authorizationService,
@@ -101,6 +106,7 @@ public class RequestMasterService {
         this.complianceRequestMapper = complianceRequestMapper;
         this.criteriaCatalogMapper = criteriaCatalogMapper;
         this.userProductMapper = userProductMapper;
+        this.productMapper = productMapper;
         this.projectMapper = projectMapper;
         this.requestService = requestService;
         this.authorizationService = authorizationService;
@@ -343,36 +349,59 @@ public class RequestMasterService {
     }
 
     private Set<String> resolvePurchasedModules(Integer companyId) {
-        List<String> featureJsonList = userProductMapper.listActiveIncludedFeaturesByCompanyId(companyId);
+        List<UserProduct> products = userProductMapper.listActiveByCompanyId(companyId);
         Set<String> modules = new LinkedHashSet<>();
-        if (featureJsonList == null || featureJsonList.isEmpty()) {
+        if (products == null || products.isEmpty()) {
             return modules;
         }
-        for (String featureJson : featureJsonList) {
-            modules.addAll(parseFeatureModules(featureJson));
+        for (UserProduct product : products) {
+            Set<String> fromFeatures = parseFeatureModules(product.getIncludedFeatures());
+            if (!fromFeatures.isEmpty()) {
+                modules.addAll(fromFeatures);
+                continue;
+            }
+            // 兼容历史脏数据（如存成套餐名 Basic 3）：回退到套餐目录的 included_features
+            if (product.getPackageId() != null) {
+                ProductPackage pkg = productMapper.selectPackageById(product.getPackageId());
+                if (pkg != null) {
+                    modules.addAll(parseFeatureModules(pkg.getIncludedFeatures()));
+                }
+            }
         }
         return modules;
     }
 
-    private Set<String> parseFeatureModules(String featureJson) {
+    /**
+     * 解析已购能力为 Trust Services 模块名。
+     * 兼容 JSON 数组（{@code ["Security","Availability"]}）与逗号分隔（{@code Security,Availability}）。
+     */
+    private Set<String> parseFeatureModules(String featureText) {
         Set<String> modules = new LinkedHashSet<>();
-        if (featureJson == null || featureJson.isBlank()) {
+        if (featureText == null || featureText.isBlank()) {
             return modules;
         }
-        try {
-            List<String> features = objectMapper.readValue(featureJson, new TypeReference<List<String>>() {
-            });
-            if (features == null) {
-                return modules;
+        String trimmed = featureText.trim();
+        List<String> features = new ArrayList<>();
+        if (trimmed.startsWith("[")) {
+            try {
+                List<String> parsed = objectMapper.readValue(trimmed, new TypeReference<List<String>>() {
+                });
+                if (parsed != null) {
+                    features.addAll(parsed);
+                }
+            } catch (IOException ignored) {
+                // fall through to comma split
             }
-            for (String feature : features) {
-                String module = normalizeFeatureToModule(feature);
-                if (module != null) {
-                    modules.add(module);
+        }
+        if (features.isEmpty()) {
+            for (String part : trimmed.split(",")) {
+                if (part != null && !part.isBlank()) {
+                    features.add(part.trim());
                 }
             }
-        } catch (IOException ignored) {
-            String module = normalizeFeatureToModule(featureJson.trim());
+        }
+        for (String feature : features) {
+            String module = normalizeFeatureToModule(feature);
             if (module != null) {
                 modules.add(module);
             }

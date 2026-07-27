@@ -2,6 +2,8 @@ package com.compliancemind.soc.common.exception;
 
 import com.compliancemind.soc.common.api.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final MessageSource messageSource;
 
@@ -39,6 +43,7 @@ public class GlobalExceptionHandler {
         HttpMessageNotReadableException.class
     })
     public ApiResponse<Void> handleBadRequest(Exception exception) {
+        log.warn("Bad request: {}", exception.getMessage());
         String msg = messageSource.getMessage(
             BizErrorCode.COMMON_BAD_REQUEST.getMessageKey(),
             null,
@@ -49,6 +54,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ApiResponse<Void> handleException(Exception exception) {
+        log.error("Unhandled exception", exception);
         String msg = messageSource.getMessage(
             BizErrorCode.COMMON_INTERNAL_ERROR.getMessageKey(),
             null,
