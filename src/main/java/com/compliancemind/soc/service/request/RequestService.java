@@ -14,8 +14,6 @@ import com.compliancemind.soc.entity.request.RequestMaster;
 import com.compliancemind.soc.mapper.project.ProjectMapper;
 import com.compliancemind.soc.mapper.request.RequestMasterMapper;
 import com.compliancemind.soc.service.rcm.RcmService;
-import com.compliancemind.soc.dto.request.RequestCreateRequest;
-import com.compliancemind.soc.dto.request.RequestDetailResponse;
 import com.compliancemind.soc.dto.request.RequestDocumentOwnerItem;
 import com.compliancemind.soc.dto.request.RequestEvidenceItem;
 import com.compliancemind.soc.dto.request.RequestEvidenceRenameRequest;
@@ -24,8 +22,6 @@ import com.compliancemind.soc.dto.request.RequestIndividualDetailResponse;
 import com.compliancemind.soc.dto.request.RequestIndividualListItem;
 import com.compliancemind.soc.dto.request.RequestIndividualUpdateRequest;
 import com.compliancemind.soc.dto.request.RequestQueryRequest;
-import com.compliancemind.soc.dto.request.RequestUpdateRequest;
-import com.compliancemind.soc.dto.request.RequestVersionCreateRequest;
 import com.compliancemind.soc.entity.request.ComplianceRequest;
 import com.compliancemind.soc.entity.request.RequestAttachment;
 import com.compliancemind.soc.entity.request.RequestVersion;
@@ -87,34 +83,12 @@ public class RequestService {
         this.requestAiReviewService = requestAiReviewService;
     }
 
-    public List<ComplianceRequest> list(RequestQueryRequest request) {
-        if (request.getProjectId() == null && request.getRequestMasterId() == null) {
-            throw new BizException(BizErrorCode.PROJECT_ID_REQUIRED);
-        }
-        if (request.getRequestMasterId() != null) {
-            RequestMaster master = requireRequestMaster(request.getRequestMasterId());
-            request.setProjectId(master.getProjectId());
-        } else {
-            authorizationService.requireProjectRead(request.getProjectId());
-        }
-        return complianceRequestMapper.listAll(request);
-    }
-
     public List<RequestIndividualListItem> listIndividuals(Long requestMasterId) {
         RequestQueryRequest query = new RequestQueryRequest();
         query.setRequestMasterId(requestMasterId);
         return complianceRequestMapper.listAll(query).stream()
             .map(this::toIndividualListItem)
             .toList();
-    }
-
-    public RequestDetailResponse detail(Long requestId) {
-        ComplianceRequest complianceRequest = requireOwnedRequest(requestId);
-        RequestDetailResponse response = new RequestDetailResponse();
-        response.setRequest(complianceRequest);
-        response.setAttachments(requestAttachmentMapper.listByRequestId(requestId));
-        response.setVersions(requestVersionMapper.listByRequestId(requestId));
-        return response;
     }
 
     public RequestIndividualDetailResponse individualDetail(Long requestId) {
@@ -177,40 +151,6 @@ public class RequestService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public ComplianceRequest create(RequestCreateRequest request) {
-        Project project = authorizationService.requireProjectWrite(request.getProjectId());
-        Integer operatorId = currentUserAccessor.requireUserId();
-        ComplianceRequest complianceRequest = new ComplianceRequest();
-        complianceRequest.setProjectId(project.getProjectId());
-        complianceRequest.setRequestMasterId(request.getRequestMasterId());
-        complianceRequest.setRequestCode("TEMP");
-        complianceRequest.setCcCriteria(request.getCcCriteria().trim());
-        complianceRequest.setTitle(request.getTitle().trim());
-        complianceRequest.setRequestDescription(request.getRequestDescription());
-        complianceRequest.setPointsOfFocus(request.getPointsOfFocus());
-        complianceRequest.setDocumentStatus(defaultText(request.getDocumentStatus(), SocConstants.Request.DOCUMENT_STATUS_PENDING));
-        complianceRequest.setEvidenceManualStatus(SocConstants.RequestIndividual.EVIDENCE_STATUS_PENDING);
-        complianceRequest.setDocumentOwner(request.getDocumentOwner());
-        complianceRequest.setImplementationDate(request.getImplementationDate());
-        complianceRequest.setLastUpdateAt(LocalDateTime.now());
-        complianceRequest.setAiReviewStatus(SocConstants.RequestIndividual.AI_REVIEW_PENDING);
-        complianceRequest.setNotes(request.getNotes());
-        complianceRequest.setRequestor(request.getRequestor());
-        complianceRequest.setComments(request.getComments());
-        complianceRequest.setCurrentVersion(SocConstants.Project.INITIAL_VERSION);
-        complianceRequest.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);
-        complianceRequest.setCreatedBy(operatorId);
-        complianceRequest.setUpdatedBy(operatorId);
-        complianceRequestMapper.insert(complianceRequest);
-        complianceRequest.setRequestCode(buildRequestCode(complianceRequest.getRequestId()));
-        complianceRequestMapper.update(complianceRequest);
-        saveSnapshot(complianceRequest, SocConstants.OperationLog.Detail.RCM_SNAPSHOT_INITIAL_VERSION_EN);
-        syncRcmDraft(complianceRequest, operatorId);
-        recordRequestLog(SocConstants.OperationLog.Action.CREATE, complianceRequest, SocConstants.OperationLog.Detail.REQUEST_CREATE_EN);
-        return complianceRequest;
-    }
-
-    @Transactional(rollbackFor = Exception.class)
     public RequestIndividualDetailResponse updateIndividual(Long requestId, RequestIndividualUpdateRequest request) {
         ComplianceRequest entity = requireOwnedRequest(requestId);
         authorizationService.requireProjectWrite(entity.getProjectId());
@@ -240,31 +180,6 @@ public class RequestService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public ComplianceRequest update(Long requestId, RequestUpdateRequest request) {
-        ComplianceRequest complianceRequest = requireOwnedRequest(requestId);
-        authorizationService.requireProjectWrite(complianceRequest.getProjectId());
-        complianceRequest.setCcCriteria(request.getCcCriteria().trim());
-        complianceRequest.setTitle(request.getTitle().trim());
-        complianceRequest.setRequestDescription(request.getRequestDescription());
-        complianceRequest.setPointsOfFocus(request.getPointsOfFocus());
-        complianceRequest.setDocumentStatus(defaultText(request.getDocumentStatus(), complianceRequest.getDocumentStatus()));
-        complianceRequest.setDocumentOwner(request.getDocumentOwner());
-        complianceRequest.setImplementationDate(request.getImplementationDate());
-        complianceRequest.setLastUpdateAt(LocalDateTime.now());
-        complianceRequest.setNotes(request.getNotes());
-        complianceRequest.setRequestor(request.getRequestor());
-        complianceRequest.setComments(request.getComments());
-        complianceRequest.setCurrentVersion(nextVersion(complianceRequest.getCurrentVersion()));
-        complianceRequest.setUpdatedBy(currentUserAccessor.requireUserId());
-        complianceRequestMapper.update(complianceRequest);
-        saveSnapshot(complianceRequest, defaultText(request.getChangeSummary(), SocConstants.OperationLog.Detail.REQUEST_UPDATE_EN));
-        syncRcmDraft(complianceRequest, currentUserAccessor.requireUserId());
-        recordRequestLog(SocConstants.OperationLog.Action.UPDATE, complianceRequest,
-            defaultText(request.getChangeSummary(), SocConstants.OperationLog.Detail.REQUEST_UPDATE_EN));
-        return complianceRequest;
-    }
-
-    @Transactional(rollbackFor = Exception.class)
     public RequestIndividualDetailResponse sendRequest(Long requestId) {
         ComplianceRequest entity = requireOwnedRequest(requestId);
         authorizationService.requireProjectWrite(entity.getProjectId());
@@ -281,23 +196,6 @@ public class RequestService {
         complianceRequestMapper.update(entity);
         recordRequestLog(SocConstants.OperationLog.Action.UPDATE, entity, "Send request for AI evidence review");
         return individualDetail(requestId);
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public RequestVersion saveVersion(Long requestId, RequestVersionCreateRequest request) {
-        ComplianceRequest complianceRequest = requireOwnedRequest(requestId);
-        authorizationService.requireProjectWrite(complianceRequest.getProjectId());
-        saveSnapshot(complianceRequest, request.getChangeSummary());
-        operationLogService.record(SocConstants.OperationLog.Module.REQUEST,
-            SocConstants.OperationLog.Action.SAVE_VERSION,
-            SocConstants.OperationLog.EntityType.REQUEST,
-            String.valueOf(requestId),
-            complianceRequest.getTitle(),
-            complianceRequest.getProjectId(),
-            request.getChangeSummary());
-        return requestVersionMapper.listByRequestId(requestId).stream()
-            .findFirst()
-            .orElseThrow(() -> new BizException(BizErrorCode.REQUEST_SAVE_VERSION_FAILED));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -343,15 +241,6 @@ public class RequestService {
         syncRcmDraft(complianceRequest, currentUserAccessor.requireUserId());
         recordRequestLog(SocConstants.OperationLog.Action.DELETE_ATTACHMENT, complianceRequest,
             SocConstants.OperationLog.Detail.REQUEST_DELETE_ATTACHMENT_PREFIX_EN + attachmentId);
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public void deleteAttachmentById(Long attachmentId) {
-        RequestAttachment attachment = requestAttachmentMapper.selectById(attachmentId);
-        if (attachment == null) {
-            throw new BizException(BizErrorCode.REQUEST_ATTACHMENT_NOT_FOUND);
-        }
-        deleteAttachment(attachment.getRequestId(), attachmentId);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -543,9 +432,9 @@ public class RequestService {
                                               Integer operatorId) {
         RequestAttachment attachment = new RequestAttachment();
         attachment.setRequestId(requestId);
-        attachment.setFileName(storedFile.originalName());
+        attachment.setFileName(storedFile.originalFilename());
         attachment.setFilePath(storedFile.relativePath());
-        attachment.setFileType(extractExtension(storedFile.originalName()));
+        attachment.setFileType(extractExtension(storedFile.originalFilename()));
         attachment.setContentType(storedFile.contentType());
         attachment.setFileSize(storedFile.fileSize());
         attachment.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);

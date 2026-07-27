@@ -13,7 +13,7 @@ spring:
       max-request-size: 50MB
 
 server:
-  port: ${SERVER_PORT:18081}
+  port: ${SERVER_PORT:8089}
   servlet:
     context-path: /api
 
@@ -31,6 +31,9 @@ app:
   jwt:
     secret: ${JWT_SECRET:replace-this-with-a-long-secret}
     expire-seconds: ${JWT_EXPIRE_SECONDS:7200}
+  # TODO: 业务开发完成后将 authorization-enabled 改回 true
+  security:
+    authorization-enabled: false
   storage:
     root: ${STORAGE_ROOT:storage}
   ai:

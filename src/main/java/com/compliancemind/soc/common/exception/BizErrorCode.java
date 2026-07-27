@@ -55,7 +55,6 @@ public enum BizErrorCode {
     CONTROL_TEST_NOT_FOUND(404, "error.control_test.not_found"),
     CONTROL_TEST_SNAPSHOT_GENERATION_FAILED(500, "error.control_test.snapshot_failed"),
 
-    REQUEST_SAVE_VERSION_FAILED(500, "error.request.save_version_failed"),
     REQUEST_ATTACHMENT_NOT_FOUND(404, "error.request.attachment_not_found"),
     REQUEST_NOT_FOUND(404, "error.request.not_found"),
     REQUEST_SNAPSHOT_GENERATION_FAILED(500, "error.request.snapshot_failed"),
