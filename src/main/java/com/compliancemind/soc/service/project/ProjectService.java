@@ -336,8 +336,9 @@ public class ProjectService {
         List<ProjectMember> savedMembers = new ArrayList<>();
 
         for (ProjectMemberSaveRequest.MemberItem item : members) {
+            // 未选用户的角色槽位可跳过（如 Manager tier 2 留空）
             if (item.getUserId() == null) {
-                throw new BizException(BizErrorCode.PROJECT_MEMBER_USER_NOT_IN_COMPANY);
+                continue;
             }
             if (!assignedUserIds.add(item.getUserId())) {
                 throw new BizException(BizErrorCode.PROJECT_MEMBER_DUPLICATE_USER);
@@ -370,6 +371,10 @@ public class ProjectService {
             member.setUpdatedBy(operatorId);
             projectMemberMapper.insert(member);
             savedMembers.add(member);
+        }
+
+        if (savedMembers.isEmpty()) {
+            throw new BizException(BizErrorCode.PROJECT_MEMBERS_REQUIRED);
         }
 
         if (!hasProjectManager) {

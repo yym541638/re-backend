@@ -65,14 +65,22 @@ public class LegacyUserController {
     }
 
     /**
-     * 系统用户列表（System Users）。
+     * 用户列表。
      *
-     * <p>GET /user/list，需 JWT 且为系统管理员（COMP_ADMIN）；返回全部用户（跨公司）。</p>
+     * <p>GET /user/list，需 JWT 且为系统管理员（COMP_ADMIN）。</p>
+     * <ul>
+     *   <li>默认：仅本公司用户（Manage members / PRD 2.5.12 成员下拉）</li>
+     *   <li>{@code allCompanies=true}：跨公司全部用户（System Users）</li>
+     * </ul>
      */
     @GetMapping("/list")
-    public ApiResponse<List<Map<String, Object>>> list(@RequestParam(value = "keyword", required = false) String keyword) {
+    public ApiResponse<List<Map<String, Object>>> list(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "allCompanies", required = false, defaultValue = "false") boolean allCompanies) {
         authorizationService.requireCompanyManagement();
-        List<UserAccount> users = userAccountMapper.listAllUsers(keyword);
+        List<UserAccount> users = allCompanies
+            ? userAccountMapper.listAllUsers(keyword)
+            : userAccountMapper.listUsers(authorizationService.currentCompanyId(), keyword);
         List<Map<String, Object>> list = users.stream().map(user -> {
             String role = RoleCodes.normalizeCompanyRole(user.getRoleCode());
             String systemRole = RoleCodes.toSystemRole(role);
