@@ -74,6 +74,42 @@ public class AuthorizationService {
         }
     }
 
+    /**
+     * 项目成员目录：系统管理员或本公司任一项目管理员可访问。
+     */
+    public void requireProjectUserDirectoryAccess() {
+        if (!authorizationEnabled) {
+            return;
+        }
+        if (RoleCodes.canManageCompany(currentRoleCode())) {
+            return;
+        }
+        if (canManageAnyProjectInCompany()) {
+            return;
+        }
+        throw new BizException(BizErrorCode.AUTH_PROJECT_MANAGE_DENIED);
+    }
+
+    public boolean isSystemAdmin() {
+        if (!authorizationEnabled) {
+            return true;
+        }
+        return RoleCodes.canManageCompany(currentRoleCode());
+    }
+
+    public boolean canManageAnyProjectInCompany() {
+        if (!authorizationEnabled) {
+            return true;
+        }
+        if (RoleCodes.canManageCompany(currentRoleCode())) {
+            return true;
+        }
+        Integer userId = currentUserAccessor.requireUserId();
+        Integer companyId = currentCompanyId();
+        return projectMemberMapper.listByUserIdAndCompanyId(userId, companyId).stream()
+            .anyMatch(member -> RoleCodes.canManageProject(member.getMemberRole()));
+    }
+
     public boolean canAccessAllProjects() {
         if (!authorizationEnabled) {
             return true;

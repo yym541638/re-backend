@@ -104,7 +104,8 @@ public class AuthService {
         userAccount.setEmail(request.getEmail().trim());
         userAccount.setPhone(request.getPhone().trim());
         userAccount.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        String permissionCode = resolvePermissionCode(request);
+        boolean hasInvitation = invitationCode != null;
+        String permissionCode = resolvePermissionCode(request, invitationCode);
         String userType = resolveUserType(request);
         ensureCompanyAdminAssignable(company.getCompanyId(), permissionCode);
         userAccount.setRoleCode(permissionCode);
@@ -174,6 +175,11 @@ public class AuthService {
         userInfo.setUserType(UserTypes.normalize(userAccount.getUserType()));
         // 归一化后的权限，序列化为 user_info.role
         userInfo.setRoleCode(roleCode);
+        // 双层权限：系统角色 COMP_ADMIN / COMP_USER
+        String systemRole = RoleCodes.toSystemRole(roleCode);
+        userInfo.setSystemRole(systemRole);
+        // 旧前端兼容：permissionCode=administrator → COMP_ADMIN
+        userInfo.setPermissionCode(RoleCodes.COMPANY_ADMIN.equals(systemRole) ? "administrator" : "user");
         response.setUser(userInfo);
         return response;
     }
@@ -193,7 +199,11 @@ public class AuthService {
         return normalized;
     }
 
-    private String resolvePermissionCode(RegisterRequest request) {
+    /**
+     * 解析系统角色：有邀请码默认 {@link RoleCodes#COMPANY_USER}（或邀请码上的 member_role），
+     * 无邀请码默认 {@link RoleCodes#COMPANY_ADMIN}。
+     */
+    private String resolvePermissionCode(RegisterRequest request, InvitationCode invitationCode) {
         String raw = request.getPermissionCode();
         if (raw == null || raw.isBlank()) {
             // roleCode 若是用户类型则不能当作权限
@@ -202,7 +212,20 @@ public class AuthService {
             }
         }
         if (raw == null || raw.isBlank()) {
-            throw new BizException(BizErrorCode.AUTH_PERMISSION_REQUIRED);
+            if (invitationCode != null) {
+                if (invitationCode.getMemberRole() != null && !invitationCode.getMemberRole().isBlank()) {
+                    String fromInvite = RoleCodes.normalizeSystemRole(invitationCode.getMemberRole());
+                    if (RoleCodes.isSystemRole(fromInvite)) {
+                        return fromInvite;
+                    }
+                }
+                return RoleCodes.COMPANY_USER;
+            }
+            return RoleCodes.COMPANY_ADMIN;
+        }
+        // 注册页系统角色仅显式 Admin / Comp User；细粒度角色仍按公司角色写入
+        if (RoleCodes.isExplicitSystemRoleInput(raw)) {
+            return RoleCodes.normalizeSystemRole(raw);
         }
         String normalized = RoleCodes.normalizeCompanyRole(raw);
         if (!RoleCodes.isCompanyRole(normalized)) {

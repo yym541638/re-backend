@@ -29,11 +29,11 @@ public class RegisterRequest {
     private String companyName;
 
     /**
-     * 公司权限（注册页 Permissions 下拉）：Admin / Document Owner / General User / Manager tier1 / Manager tier2。
-     * <p>推荐传编码：{@code COMP_ADMIN} / {@code DOCUMENT_OWNER} / {@code GENERAL_USER} / {@code MANAGER} / {@code MANAGER_2}。
-     * 也兼容 UI 文案，如 {@code administrator}。</p>
+     * 系统角色（注册页 Permissions）：Admin / Comp User。
+     * <p>推荐传编码：{@code COMP_ADMIN} / {@code COMP_USER}。
+     * 也兼容 UI 文案，如 {@code administrator}；未传时：有邀请码默认 COMP_USER，无邀请码默认 COMP_ADMIN。</p>
      */
-    @JsonAlias({"permissions", "permission", "permissionCode"})
+    @JsonAlias({"permissions", "permission", "permissionCode", "systemRole", "system_role"})
     private String permissionCode;
 
     /**

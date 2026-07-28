@@ -1,6 +1,7 @@
 package com.compliancemind.soc.controller.invitation;
 
 import com.compliancemind.soc.common.api.ApiResponse;
+import com.compliancemind.soc.dto.invitation.CompanyInvitationCreateRequest;
 import com.compliancemind.soc.dto.invitation.InvitationCreateRequest;
 import com.compliancemind.soc.dto.invitation.InvitationQueryRequest;
 import com.compliancemind.soc.dto.invitation.InvitationRedeemRequest;
@@ -40,6 +41,20 @@ public class InvitationCodeController {
     @PostMapping("/project/create")
     public ApiResponse<InvitationCode> createProjectInvitation(@Valid @RequestBody InvitationCreateRequest request) {
         return ApiResponse.success(invitationCodeService.createProjectInvitation(request));
+    }
+
+    /**
+     * 创建公司邀请码（System Users）。
+     *
+     * <p>POST /invitation-code/company/create，需 JWT 且为公司管理员。</p>
+     */
+    @PostMapping("/company/create")
+    public ApiResponse<InvitationCode> createCompanyInvitation(
+        @Valid @RequestBody(required = false) CompanyInvitationCreateRequest request) {
+        if (request == null) {
+            request = new CompanyInvitationCreateRequest();
+        }
+        return ApiResponse.success(invitationCodeService.createCompanyInvitation(request));
     }
 
     /**

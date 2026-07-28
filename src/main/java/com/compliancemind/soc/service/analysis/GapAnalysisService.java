@@ -1,15 +1,16 @@
 package com.compliancemind.soc.service.analysis;
 
-import com.compliancemind.soc.dto.analysis.GapAnalysisQueryRequest;
-import com.compliancemind.soc.entity.analysis.GapAnalysisRecord;
-import com.compliancemind.soc.mapper.analysis.GapAnalysisMapper;
 import com.compliancemind.soc.common.constants.SocConstants;
 import com.compliancemind.soc.common.exception.BizErrorCode;
 import com.compliancemind.soc.common.exception.BizException;
+import com.compliancemind.soc.dto.analysis.GapAnalysisQueryRequest;
+import com.compliancemind.soc.dto.analysis.GapAnalysisSaveRequest;
+import com.compliancemind.soc.entity.analysis.GapAnalysisRecord;
 import com.compliancemind.soc.entity.controltesting.ControlTest;
+import com.compliancemind.soc.mapper.analysis.GapAnalysisMapper;
 import com.compliancemind.soc.mapper.controltesting.ControlTestMapper;
-import com.compliancemind.soc.service.operationlog.OperationLogService;
 import com.compliancemind.soc.security.AuthorizationService;
+import com.compliancemind.soc.service.operationlog.OperationLogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +47,45 @@ public class GapAnalysisService {
     }
 
     @Transactional(rollbackFor = Exception.class)
+    public GapAnalysisRecord create(Long projectId, GapAnalysisSaveRequest request) {
+        if (projectId == null) {
+            throw new BizException(BizErrorCode.GAP_ANALYSIS_PROJECT_ID_REQUIRED);
+        }
+        authorizationService.requireProjectWrite(projectId);
+        GapAnalysisRecord record = new GapAnalysisRecord();
+        record.setProjectId(projectId);
+        applySaveRequest(record, request);
+        gapAnalysisMapper.insert(record);
+        operationLogService.record(SocConstants.OperationLog.Module.GAP_ANALYSIS,
+            SocConstants.OperationLog.Action.CREATE,
+            SocConstants.OperationLog.EntityType.PROJECT,
+            String.valueOf(record.getGapId()),
+            record.getControlTitle(),
+            projectId,
+            "Create gap analysis");
+        return gapAnalysisMapper.selectById(record.getGapId());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public GapAnalysisRecord update(Long gapId, GapAnalysisSaveRequest request) {
+        GapAnalysisRecord existing = gapAnalysisMapper.selectById(gapId);
+        if (existing == null) {
+            throw new BizException(BizErrorCode.GAP_ANALYSIS_NOT_FOUND);
+        }
+        authorizationService.requireProjectWrite(existing.getProjectId());
+        applySaveRequest(existing, request);
+        gapAnalysisMapper.update(existing);
+        operationLogService.record(SocConstants.OperationLog.Module.GAP_ANALYSIS,
+            SocConstants.OperationLog.Action.UPDATE,
+            SocConstants.OperationLog.EntityType.PROJECT,
+            String.valueOf(gapId),
+            existing.getControlTitle(),
+            existing.getProjectId(),
+            "Update gap analysis");
+        return gapAnalysisMapper.selectById(gapId);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
     public List<GapAnalysisRecord> regenerate(Long projectId) {
         authorizationService.requireProjectWrite(projectId);
         gapAnalysisMapper.deleteByProjectId(projectId);
@@ -78,6 +118,36 @@ public class GapAnalysisService {
 
     public long countByProjectId(Long projectId) {
         return gapAnalysisMapper.countByProjectId(projectId);
+    }
+
+    private void applySaveRequest(GapAnalysisRecord record, GapAnalysisSaveRequest request) {
+        if (request == null) {
+            throw new BizException(BizErrorCode.GAP_ANALYSIS_TITLE_REQUIRED);
+        }
+        String title = request.getControlTitle();
+        if (title == null || title.isBlank()) {
+            throw new BizException(BizErrorCode.GAP_ANALYSIS_TITLE_REQUIRED);
+        }
+        record.setControlTitle(title.trim());
+        record.setSourceTestId(request.getSourceTestId());
+        record.setGapDescription(request.getGapDescription());
+        record.setRemediationSuggestion(request.getRemediationSuggestion());
+        record.setGapLevel(request.getGapLevel() == null || request.getGapLevel().isBlank()
+            ? SocConstants.GapAnalysis.RISK_MEDIUM
+            : request.getGapLevel().trim().toUpperCase());
+        record.setStatus(resolveStatus(request.getRemediationYesNo()));
+    }
+
+    private String resolveStatus(String remediationYesNo) {
+        if (remediationYesNo == null || remediationYesNo.isBlank()) {
+            return SocConstants.GapAnalysis.STATUS_OPEN;
+        }
+        String normalized = remediationYesNo.trim().toUpperCase();
+        if ("YES".equals(normalized) || "Y".equals(normalized) || "TRUE".equals(normalized)
+            || SocConstants.GapAnalysis.STATUS_CLOSED.equals(normalized)) {
+            return SocConstants.GapAnalysis.STATUS_CLOSED;
+        }
+        return SocConstants.GapAnalysis.STATUS_OPEN;
     }
 
     private String resolveGapLevel(String riskLevel, String resultStatus) {

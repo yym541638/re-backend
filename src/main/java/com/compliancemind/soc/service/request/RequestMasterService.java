@@ -241,7 +241,7 @@ public class RequestMasterService {
         RequestMasterTemplateFile entity = new RequestMasterTemplateFile();
         entity.setRequestMasterId(requestMasterId);
         entity.setFileNo(templateFileMapper.maxFileNo(requestMasterId) + 1);
-        entity.setFileName(storedFile.originalFilename());
+        entity.setFileName(storedFile.originalName());
         entity.setFilePath(storedFile.relativePath());
         entity.setRelevantCriteria(relevantCriteria);
         entity.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);

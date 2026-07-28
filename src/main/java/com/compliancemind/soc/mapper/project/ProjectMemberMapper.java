@@ -44,6 +44,16 @@ public interface ProjectMemberMapper {
         """)
     ProjectMember selectByProjectIdAndUserId(@Param("projectId") Long projectId, @Param("userId") Integer userId);
 
+    @Select("""
+        select m.member_id, m.project_id, m.user_id, m.member_role, m.display_name, m.email, m.deleted,
+               m.created_by, m.updated_by, m.created_at, m.updated_at
+        from soc_project_member m
+        inner join soc_project p on p.project_id = m.project_id and p.deleted = 0
+        where m.deleted = 0 and m.user_id = #{userId} and p.company_id = #{companyId}
+        """)
+    List<ProjectMember> listByUserIdAndCompanyId(@Param("userId") Integer userId,
+                                                 @Param("companyId") Integer companyId);
+
     @Insert("""
         insert into soc_project_member(project_id, user_id, member_role, display_name, email, deleted, created_by, updated_by, created_at, updated_at)
         values(#{projectId}, #{userId}, #{memberRole}, #{displayName}, #{email}, #{deleted}, #{createdBy}, #{updatedBy}, now(), now())

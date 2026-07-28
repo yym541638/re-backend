@@ -47,6 +47,9 @@ public interface InvitationCodeMapper {
                expires_at, remark, created_by, used_by, used_at, created_at, updated_at
         from sys_invitation_code
         where 1 = 1
+        <if test='query.companyId != null'>
+          and company_id = #{query.companyId}
+        </if>
         <if test='query.projectId != null'>
           and project_id = #{query.projectId}
         </if>
@@ -64,6 +67,14 @@ public interface InvitationCodeMapper {
         where project_id = #{projectId}
         """)
     long countByProjectId(@Param("projectId") Long projectId);
+
+    @Select("""
+        select count(1)
+        from sys_invitation_code
+        where company_id = #{companyId} and invitation_type = #{invitationType}
+        """)
+    long countByCompanyIdAndType(@Param("companyId") Integer companyId,
+                                 @Param("invitationType") String invitationType);
 
     @Update("""
         update sys_invitation_code

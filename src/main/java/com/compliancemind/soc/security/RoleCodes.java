@@ -9,6 +9,8 @@ import java.util.Set;
 public final class RoleCodes {
 
     public static final String COMPANY_ADMIN = "COMP_ADMIN";
+    /** 系统角色：普通公司用户（与业务身份 user_type 分离）。 */
+    public static final String COMPANY_USER = "COMP_USER";
     public static final String DOCUMENT_OWNER = "DOCUMENT_OWNER";
     public static final String GENERAL_USER = "GENERAL_USER";
     public static final String MANAGER = "MANAGER";
@@ -17,11 +19,14 @@ public final class RoleCodes {
 
     private static final Set<String> COMPANY_ROLES = Set.of(
         COMPANY_ADMIN,
+        COMPANY_USER,
         DOCUMENT_OWNER,
         GENERAL_USER,
         MANAGER,
         MANAGER_2
     );
+
+    private static final Set<String> SYSTEM_ROLES = Set.of(COMPANY_ADMIN, COMPANY_USER);
 
     private static final Set<String> PROJECT_ROLES = Set.of(
         COMPANY_ADMIN,
@@ -39,6 +44,7 @@ public final class RoleCodes {
         String normalized = normalizeToken(roleCode);
         return switch (normalized) {
             case "", "USER", "GENERALUSER", "GENERAL_USER", "GENERAL" -> GENERAL_USER;
+            case "COMPUSER", "COMP_USER", "COMPANYUSER", "COMPANY_USER" -> COMPANY_USER;
             case "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN",
                  "ADMINISTRATOR", "ADMINISTRATOR_ONLY_1_ACCOUNT" -> COMPANY_ADMIN;
             case "DOCUMENTOWNER", "DOCUMENT_OWNER", "DOCUMENT" -> DOCUMENT_OWNER;
@@ -49,6 +55,43 @@ public final class RoleCodes {
                  "MANAGER_TIER2_USER" -> MANAGER_2;
             default -> normalized;
         };
+    }
+
+    /**
+     * 双层权限中的系统角色：仅 {@link #COMPANY_ADMIN} / {@link #COMPANY_USER}。
+     * <p>历史细粒度公司角色（MANAGER 等）对外一律映射为 {@link #COMPANY_USER}。</p>
+     */
+    public static String toSystemRole(String roleCode) {
+        return COMPANY_ADMIN.equals(normalizeCompanyRole(roleCode)) ? COMPANY_ADMIN : COMPANY_USER;
+    }
+
+    /** 归一化并可校验的系统角色（仅接受 Admin / Comp User 及其别名）。 */
+    public static String normalizeSystemRole(String roleCode) {
+        String normalized = normalizeToken(roleCode);
+        return switch (normalized) {
+            case "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN",
+                 "ADMINISTRATOR", "ADMINISTRATOR_ONLY_1_ACCOUNT" -> COMPANY_ADMIN;
+            case "USER", "COMPUSER", "COMP_USER", "COMPANYUSER", "COMPANY_USER",
+                 "GENERALUSER", "GENERAL_USER", "GENERAL" -> COMPANY_USER;
+            default -> normalized;
+        };
+    }
+
+    /**
+     * 是否为注册/变更接口显式传入的系统角色编码（不含历史细粒度 GENERAL_USER 等，避免误归一化）。
+     */
+    public static boolean isExplicitSystemRoleInput(String roleCode) {
+        String normalized = normalizeToken(roleCode);
+        return switch (normalized) {
+            case "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN",
+                 "ADMINISTRATOR", "ADMINISTRATOR_ONLY_1_ACCOUNT",
+                 "COMPUSER", "COMP_USER", "COMPANYUSER", "COMPANY_USER" -> true;
+            default -> false;
+        };
+    }
+
+    public static boolean isSystemRole(String roleCode) {
+        return SYSTEM_ROLES.contains(normalizeSystemRole(roleCode));
     }
 
     public static String normalizeProjectRole(String roleCode) {
@@ -82,12 +125,15 @@ public final class RoleCodes {
     }
 
     public static boolean canManageCompany(String roleCode) {
-        return COMPANY_ADMIN.equals(normalizeCompanyRole(roleCode));
+        return COMPANY_ADMIN.equals(toSystemRole(roleCode));
     }
 
+    /**
+     * 公司级可见全部项目：仅系统管理员 {@link #COMPANY_ADMIN}。
+     * <p>双层权限下 MANAGER / DOCUMENT_OWNER 等只作为项目成员角色，不再赋予公司级全项目访问。</p>
+     */
     public static boolean canAccessAllProjects(String roleCode) {
-        String normalized = normalizeCompanyRole(roleCode);
-        return COMPANY_ADMIN.equals(normalized) || MANAGER.equals(normalized) || MANAGER_2.equals(normalized)|| DOCUMENT_OWNER.equals(normalized);
+        return canManageCompany(roleCode);
     }
 
     public static boolean canManageProject(String roleCode) {
@@ -101,6 +147,7 @@ public final class RoleCodes {
     public static boolean canEditProjectContent(String roleCode) {
         String normalized = normalizeProjectRole(roleCode);
         return COMPANY_ADMIN.equals(normalized)
+            || COMPANY_USER.equals(normalized)
             || GENERAL_USER.equals(normalized)
             || MANAGER.equals(normalized)
             || MANAGER_2.equals(normalized)

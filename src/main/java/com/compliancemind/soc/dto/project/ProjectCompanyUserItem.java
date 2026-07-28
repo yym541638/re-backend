@@ -19,9 +19,13 @@ public class ProjectCompanyUserItem {
 
     private String phone;
 
-    /** 公司级权限（Permissions）。 */
+    /** 公司级权限（Permissions / 兼容旧字段）。 */
     @JsonProperty("permission")
     private String permissionCode;
+
+    /** 系统角色：COMP_ADMIN / COMP_USER。 */
+    @JsonProperty("system_role")
+    private String systemRole;
 
     /** 用户类型（Clients / Consultant / Auditor）。 */
     @JsonProperty("user_type")

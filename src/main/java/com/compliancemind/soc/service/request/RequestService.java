@@ -432,9 +432,9 @@ public class RequestService {
                                               Integer operatorId) {
         RequestAttachment attachment = new RequestAttachment();
         attachment.setRequestId(requestId);
-        attachment.setFileName(storedFile.originalFilename());
+        attachment.setFileName(storedFile.originalName());
         attachment.setFilePath(storedFile.relativePath());
-        attachment.setFileType(extractExtension(storedFile.originalFilename()));
+        attachment.setFileType(extractExtension(storedFile.originalName()));
         attachment.setContentType(storedFile.contentType());
         attachment.setFileSize(storedFile.fileSize());
         attachment.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);

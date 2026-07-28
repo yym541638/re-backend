@@ -7,6 +7,7 @@ import com.compliancemind.soc.common.constants.SocConstants;
 import com.compliancemind.soc.common.exception.BizErrorCode;
 import com.compliancemind.soc.common.exception.BizException;
 import com.compliancemind.soc.common.i18n.LocalizedMessageResolver;
+import com.compliancemind.soc.dto.invitation.CompanyInvitationCreateRequest;
 import com.compliancemind.soc.dto.invitation.InvitationCreateRequest;
 import com.compliancemind.soc.dto.invitation.InvitationQueryRequest;
 import com.compliancemind.soc.dto.invitation.InvitationRedeemResponse;
@@ -92,12 +93,56 @@ public class InvitationCodeService {
         return invitationCode;
     }
 
+    /**
+     * 创建公司邀请码（System Users「生成公司邀请码」）。
+     * <p>仅公司管理员；注册时默认系统角色 {@link RoleCodes#COMPANY_USER}。</p>
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public InvitationCode createCompanyInvitation(CompanyInvitationCreateRequest request) {
+        authorizationService.requireCompanyManagement();
+        Integer companyId = authorizationService.currentCompanyId();
+        Company company = companyMapper.selectById(companyId);
+        if (company == null) {
+            throw new BizException(BizErrorCode.AUTH_INVITATION_COMPANY_MISSING);
+        }
+        String memberRole = request.getMemberRole() == null || request.getMemberRole().isBlank()
+            ? RoleCodes.COMPANY_USER
+            : RoleCodes.normalizeSystemRole(request.getMemberRole());
+        if (!RoleCodes.isSystemRole(memberRole)) {
+            throw new BizException(BizErrorCode.AUTH_UNSUPPORTED_USER_ROLE);
+        }
+        InvitationCode invitationCode = new InvitationCode();
+        invitationCode.setCode(buildCompanyCode(company));
+        invitationCode.setInvitationType(SocConstants.Invitation.TYPE_COMPANY);
+        invitationCode.setCompanyId(companyId);
+        invitationCode.setProjectId(null);
+        invitationCode.setMemberRole(memberRole);
+        invitationCode.setStatus(SocConstants.Invitation.STATUS_ACTIVE);
+        invitationCode.setMaxUses(request.getMaxUses() == null || request.getMaxUses() < 1
+            ? SocConstants.Invitation.DEFAULT_MAX_USES
+            : request.getMaxUses());
+        invitationCode.setUsedCount(0);
+        invitationCode.setExpiresAt(request.getExpiresAt());
+        invitationCode.setRemark(request.getRemark());
+        invitationCode.setCreatedBy(currentUserAccessor.requireUserId());
+        invitationCodeMapper.insert(invitationCode);
+        operationLogService.record(SocConstants.OperationLog.Module.INVITATION_CODE,
+            SocConstants.OperationLog.Action.CREATE,
+            SocConstants.OperationLog.EntityType.COMPANY,
+            String.valueOf(companyId),
+            company.getCompanyName(),
+            null,
+            SocConstants.OperationLog.Detail.INVITE_CREATE_PREFIX_ZH + invitationCode.getCode());
+        return invitationCode;
+    }
+
     public List<InvitationCode> list(InvitationQueryRequest request) {
         if (request.getProjectId() == null) {
-            authorizationService.requireCompanyProjectManagement();
+            authorizationService.requireCompanyManagement();
         } else {
             authorizationService.requireProjectRead(request.getProjectId());
         }
+        request.setCompanyId(authorizationService.currentCompanyId());
         return invitationCodeMapper.list(request);
     }
 
@@ -266,14 +311,21 @@ public class InvitationCodeService {
         if (invitationCode == null) {
             throw new BizException(BizErrorCode.INVITATION_NOT_FOUND);
         }
-        authorizationService.requireProjectManage(invitationCode.getProjectId());
+        if (invitationCode.getProjectId() != null) {
+            authorizationService.requireProjectManage(invitationCode.getProjectId());
+        } else {
+            authorizationService.requireCompanyManagement();
+            if (!authorizationService.currentCompanyId().equals(invitationCode.getCompanyId())) {
+                throw new BizException(BizErrorCode.INVITATION_COMPANY_MISMATCH);
+            }
+        }
         invitationCodeMapper.revoke(invitationId);
         operationLogService.record(SocConstants.OperationLog.Module.INVITATION_CODE,
             SocConstants.OperationLog.Action.REVOKE,
             SocConstants.OperationLog.EntityType.INVITATION_CODE,
             String.valueOf(invitationId),
             SocConstants.Invitation.LABEL_GENERIC_ZH,
-            null,
+            invitationCode.getProjectId(),
             SocConstants.OperationLog.Detail.INVITATION_REVOKE_ZH);
     }
 
@@ -308,6 +360,14 @@ public class InvitationCodeService {
             + "-"
             + sanitize(project.getProjectName() == null ? "项目" : project.getProjectName(), 16)
             + "-"
+            + String.format("%04d", serial);
+    }
+
+    private String buildCompanyCode(Company company) {
+        long serial = invitationCodeMapper.countByCompanyIdAndType(
+            company.getCompanyId(), SocConstants.Invitation.TYPE_COMPANY) + 1;
+        return sanitize(company.getCompanyName() == null ? "公司" : company.getCompanyName(), 20)
+            + "-INV-"
             + String.format("%04d", serial);
     }
 

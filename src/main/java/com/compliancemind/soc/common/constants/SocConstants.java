@@ -122,6 +122,7 @@ public final class SocConstants {
     /** Invitation codes. */
     public static final class Invitation {
         public static final String TYPE_PROJECT = "PROJECT";
+        public static final String TYPE_COMPANY = "COMPANY";
         public static final String STATUS_ACTIVE = "ACTIVE";
         public static final String STATUS_USED = "USED";
         public static final String STATUS_REVOKED = "REVOKED";
@@ -129,6 +130,7 @@ public final class SocConstants {
         public static final String RESPONSE_CODE_NOT_FOUND = "NOT_FOUND";
         public static final int DEFAULT_MAX_USES = 1;
         public static final String LABEL_GENERIC_ZH = "邀请码";
+        public static final String LABEL_COMPANY_ZH = "公司邀请码";
     }
 
     /** Async report generation tasks. */
@@ -228,6 +230,7 @@ public final class SocConstants {
     /** Gap analysis rows. */
     public static final class GapAnalysis {
         public static final String STATUS_OPEN = "OPEN";
+        public static final String STATUS_CLOSED = "CLOSED";
         public static final String RISK_HIGH = "HIGH";
         public static final String RISK_MEDIUM = "MEDIUM";
         public static final String TITLE_DEFAULT = "Gap Analysis";

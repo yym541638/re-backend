@@ -24,6 +24,7 @@ public enum BizErrorCode {
     AUTH_UNSUPPORTED_USER_TYPE(400, "error.auth.unsupported_user_type"),
     AUTH_PERMISSION_REQUIRED(400, "error.auth.permission_required"),
     AUTH_COMPANY_ADMIN_EXISTS(400, "error.auth.company_admin_exists"),
+    AUTH_LAST_COMPANY_ADMIN(400, "error.auth.last_company_admin"),
     AUTH_DISPLAY_NAME_REQUIRED(400, "error.auth.display_name_required"),
     AUTH_CURRENT_USER_NOT_FOUND(401, "error.auth.current_user_not_found"),
     AUTH_USER_NOT_LOGGED_IN(401, "error.auth.user_not_logged_in"),
@@ -83,6 +84,8 @@ public enum BizErrorCode {
     COMPANY_NOT_FOUND(404, "error.company.not_found"),
 
     GAP_ANALYSIS_PROJECT_ID_REQUIRED(400, "error.gap_analysis.project_id_required"),
+    GAP_ANALYSIS_NOT_FOUND(404, "error.gap_analysis.not_found"),
+    GAP_ANALYSIS_TITLE_REQUIRED(400, "error.gap_analysis.title_required"),
 
     INVITATION_NOT_FOUND(404, "error.invitation.not_found"),
     INVITATION_REVOKED(400, "error.invitation.revoked"),

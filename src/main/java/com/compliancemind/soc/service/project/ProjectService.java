@@ -143,21 +143,22 @@ public class ProjectService {
     }
 
     /**
-     * 按公司名称查询本公司用户，供创建/编辑项目时选择成员。
+     * 查询可选成员用户：系统管理员看本公司全部用户；项目管理员仅看本公司项目下人员。
      *
      * <p>{@code companyName} 必须与当前登录用户所属公司一致，防止跨公司越权查询。</p>
      */
     public List<ProjectCompanyUserItem> listCompanyUsers(String companyName, String keyword) {
-        authorizationService.requireCompanyProjectManagement();
+        authorizationService.requireProjectUserDirectoryAccess();
         UserAccount currentUser = authorizationService.currentUser();
         Company company = companyMapper.selectById(currentUser.getCompanyId());
         if (company == null || companyName == null || companyName.isBlank()
                 || !company.getCompanyName().equalsIgnoreCase(companyName.trim())) {
             throw new BizException(BizErrorCode.COMPANY_NOT_FOUND);
         }
-        return userAccountMapper.listUsers(currentUser.getCompanyId(), keyword).stream()
-                .map(this::toCompanyUserItem)
-                .toList();
+        List<UserAccount> users = authorizationService.isSystemAdmin()
+            ? userAccountMapper.listUsers(currentUser.getCompanyId(), keyword)
+            : userAccountMapper.listUsersInCompanyProjects(currentUser.getCompanyId(), keyword);
+        return users.stream().map(this::toCompanyUserItem).toList();
     }
 
     public List<ProjectRoleSlotItem> listRoleSlots() {
@@ -439,7 +440,9 @@ public class ProjectService {
         item.setDisplayName(user.getDisplayName());
         item.setEmail(user.getEmail());
         item.setPhone(user.getPhone());
-        item.setPermissionCode(RoleCodes.normalizeCompanyRole(user.getRoleCode()));
+        String role = RoleCodes.normalizeCompanyRole(user.getRoleCode());
+        item.setPermissionCode(role);
+        item.setSystemRole(RoleCodes.toSystemRole(role));
         item.setUserType(UserTypes.normalize(user.getUserType()));
         return item;
     }

@@ -33,6 +33,8 @@ public class UserAccount {
     private String roleCode;
     /** 账号状态（1=启用，0=禁用）。 */
     private Integer status;
+    /** 所属公司名称（列表联查时填充，非表字段）。 */
+    private String companyName;
     /** 创建时间。 */
     private LocalDateTime createdAt;
     /** 最后更新时间。 */

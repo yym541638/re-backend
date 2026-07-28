@@ -15,6 +15,7 @@ import com.compliancemind.soc.service.operationlog.OperationLogService;
 import com.compliancemind.soc.security.AuthorizationService;
 import com.compliancemind.soc.security.CurrentUserAccessor;
 import com.compliancemind.soc.security.RoleCodes;
+import com.compliancemind.soc.security.UserTypes;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +54,10 @@ public class ProfileService {
         response.setAvatarUrl(userAccount.getAvatarUrl());
         response.setJobTitle(userAccount.getJobTitle());
         response.setRoleCode(userAccount.getRoleCode());
+        String systemRole = RoleCodes.toSystemRole(userAccount.getRoleCode());
+        response.setSystemRole(systemRole);
+        response.setUserType(UserTypes.normalize(userAccount.getUserType()));
+        response.setPermissionCode(RoleCodes.COMPANY_ADMIN.equals(systemRole) ? "administrator" : "user");
         response.setCompany(toCompanyResponse(company));
         return response;
     }

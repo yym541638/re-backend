@@ -35,8 +35,19 @@ public class LoginResponse {
         /** 用户类型：CLIENT / CONSULTANT / AUDITOR。 */
         @JsonProperty("user_type")
         private String userType;
-        /** 公司权限编码。 */
+        /** 公司权限编码（兼容旧前端）。 */
         @JsonProperty("role")
         private String roleCode;
+        /**
+         * 系统角色：{@code COMP_ADMIN} / {@code COMP_USER}。
+         * <p>前端双层权限入口控制字段；兼容旧字段时可回退 {@link #permissionCode}=administrator。</p>
+         */
+        @JsonProperty("system_role")
+        private String systemRole;
+        /**
+         * 旧版权限文案兼容：管理员为 {@code administrator}，普通用户为 {@code user}。
+         */
+        @JsonProperty("permissionCode")
+        private String permissionCode;
     }
 }
