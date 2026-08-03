@@ -14,20 +14,32 @@ import java.util.List;
 public interface RequestMasterTemplateFileMapper {
 
     @Select("""
+        <script>
         select count(1) from soc_request_master_template_file
         where deleted = 0 and request_master_id = #{requestMasterId}
+        <if test="relevantCriteria != null and relevantCriteria != ''">
+          and relevant_criteria = #{relevantCriteria}
+        </if>
+        </script>
         """)
-    long countByMasterId(@Param("requestMasterId") Long requestMasterId);
+    long countByMasterId(@Param("requestMasterId") Long requestMasterId,
+                         @Param("relevantCriteria") String relevantCriteria);
 
     @Select("""
+        <script>
         select template_file_id, request_master_id, file_no, file_name, file_path, relevant_criteria,
                deleted, created_by, updated_by, created_at, updated_at
         from soc_request_master_template_file
         where deleted = 0 and request_master_id = #{requestMasterId}
+        <if test="relevantCriteria != null and relevantCriteria != ''">
+          and relevant_criteria = #{relevantCriteria}
+        </if>
         order by file_no asc, template_file_id asc
         limit #{offset}, #{pageSize}
+        </script>
         """)
     List<RequestMasterTemplateFile> listByMasterId(@Param("requestMasterId") Long requestMasterId,
+                                                   @Param("relevantCriteria") String relevantCriteria,
                                                    @Param("offset") long offset,
                                                    @Param("pageSize") int pageSize);
 

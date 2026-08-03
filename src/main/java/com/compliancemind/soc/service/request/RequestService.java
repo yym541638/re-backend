@@ -186,7 +186,7 @@ public class RequestService {
         List<RequestAttachment> attachments = requestAttachmentMapper.listByRequestId(requestId);
         RequestAiReviewService.AiReviewResult review = requestAiReviewService.review(attachments);
         entity.setRequestSendDate(LocalDateTime.now());
-        entity.setAiReviewStatus(review.status());
+        entity.setAiReviewStatus(SocConstants.RequestIndividual.normalizeAiReviewStatus(review.status()));
         entity.setAiReviewComment(review.comment());
         entity.setLastUpdateAt(LocalDateTime.now());
         if (!attachments.isEmpty()) {
@@ -294,7 +294,9 @@ public class RequestService {
         item.setCommentContent(request.getUserComment());
         item.setUploadEvidenceManualStatus(request.getEvidenceManualStatus());
         item.setRequestSendDate(request.getRequestSendDate());
-        item.setRequestIndividualReviewStatus(request.getAiReviewStatus());
+        String reviewLabel = SocConstants.RequestIndividual.toAiReviewLabel(request.getAiReviewStatus());
+        item.setRequestEvidenceReviewAi(reviewLabel);
+        item.setRequestIndividualReviewStatus(reviewLabel);
         item.setRequestIndividualReviewComment(request.getAiReviewComment());
         return item;
     }
@@ -316,11 +318,27 @@ public class RequestService {
         response.setRequestAssignee(request.getRequestAssignee());
         response.setUploadEvidenceManualStatus(request.getEvidenceManualStatus());
         response.setRequestSendDate(request.getRequestSendDate());
-        response.setRequestEvidenceReviewAiStatus(request.getAiReviewStatus());
+        String reviewLabel = SocConstants.RequestIndividual.toAiReviewLabel(request.getAiReviewStatus());
+        response.setRequestEvidenceReviewAi(reviewLabel);
+        response.setRequestEvidenceReviewAiStatus(reviewLabel);
+        response.setRequestEvidenceReviewAiColor(toAiReviewColor(request.getAiReviewStatus()));
         response.setAiCommentContent(request.getAiReviewComment());
         response.setCommentContent(request.getUserComment());
         response.setEvidences(attachments.stream().map(this::toEvidenceItem).toList());
         return response;
+    }
+
+    /** RED/YELLOW/GREEN → red/yellow/green；未审核返回 null。 */
+    private String toAiReviewColor(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        return switch (status.trim().toUpperCase()) {
+            case SocConstants.RequestIndividual.AI_REVIEW_RED -> "red";
+            case SocConstants.RequestIndividual.AI_REVIEW_YELLOW -> "yellow";
+            case SocConstants.RequestIndividual.AI_REVIEW_GREEN -> "green";
+            default -> null;
+        };
     }
 
     private RequestEvidenceItem toEvidenceItem(RequestAttachment attachment) {

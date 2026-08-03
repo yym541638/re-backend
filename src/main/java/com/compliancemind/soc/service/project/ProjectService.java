@@ -181,7 +181,8 @@ public class ProjectService {
     }
 
     /**
-     * 创建项目：写入项目基本信息、分配项目维度成员角色。
+     * 创建项目：写入项目基本信息，并将创建人自动写入项目成员。
+     * 其余角色分配在 Access Management 中通过成员接口完成，创建时不再接收 members。
      */
     @Transactional(rollbackFor = Exception.class)
     public ProjectCreateResponse create(ProjectCreateRequest request) {
@@ -199,12 +200,10 @@ public class ProjectService {
         project.setUpdatedBy(currentUser.getUserId());
         projectMapper.insert(project);
 
-        List<ProjectMemberSaveRequest.MemberItem> memberItems =
-            ensureCreatorInMembers(request.getMembers(), currentUser);
         persistMembers(
             project.getProjectId(),
             currentUser.getCompanyId(),
-            memberItems,
+            List.of(creatorAsMember(currentUser)),
             currentUser.getUserId()
         );
 
@@ -296,30 +295,13 @@ public class ProjectService {
         return persistMembers(projectId, companyId, members, operatorId);
     }
 
-    private List<ProjectMemberSaveRequest.MemberItem> ensureCreatorInMembers(
-        List<ProjectMemberSaveRequest.MemberItem> members,
-        UserAccount creator) {
-        if (members == null || members.isEmpty()) {
-            ProjectMemberSaveRequest.MemberItem creatorItem = new ProjectMemberSaveRequest.MemberItem();
-            creatorItem.setUserId(creator.getUserId());
-            creatorItem.setMemberRole(RoleCodes.COMPANY_ADMIN);
-            creatorItem.setDisplayName(creator.getDisplayName());
-            creatorItem.setEmail(creator.getEmail());
-            return List.of(creatorItem);
-        }
-        boolean creatorIncluded = members.stream()
-            .anyMatch(item -> creator.getUserId().equals(item.getUserId()));
-        if (creatorIncluded) {
-            return members;
-        }
+    private ProjectMemberSaveRequest.MemberItem creatorAsMember(UserAccount creator) {
         ProjectMemberSaveRequest.MemberItem creatorItem = new ProjectMemberSaveRequest.MemberItem();
         creatorItem.setUserId(creator.getUserId());
         creatorItem.setMemberRole(RoleCodes.COMPANY_ADMIN);
         creatorItem.setDisplayName(creator.getDisplayName());
         creatorItem.setEmail(creator.getEmail());
-        List<ProjectMemberSaveRequest.MemberItem> merged = new ArrayList<>(members);
-        merged.add(creatorItem);
-        return merged;
+        return creatorItem;
     }
 
     private List<ProjectMember> persistMembers(Long projectId,

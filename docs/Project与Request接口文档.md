@@ -52,7 +52,7 @@
 - **POST** `/api/project/create`
 - **Content-Type**：`application/json`
 - **权限**：仅公司管理员可创建
-- **说明**：成功仅返回 `project_id`；详情请再调 `GET /project/{projectId}`
+- **说明**：成功仅返回 `project_id`；详情请再调 `GET /project/{projectId}`。创建人自动写入项目成员；其余角色请在 Access Management 通过 `PUT /project/{projectId}/members` 分配，创建接口不再接收 `members`。
 
 **Body**：
 
@@ -62,27 +62,13 @@
 | `projectInfo` | String | 否 | `project_info` | 项目说明 |
 | `startDate` | DateTime | 是 | `start_date` | 开始时间 |
 | `endDate` | DateTime | 否 | `end_date` | 结束时间 |
-| `members` | MemberItem[] | 否 | `project_members`, `roleAssignments`, `members` | 角色分配（可部分填写） |
-
-`MemberItem`：
-
-| 字段 | 类型 | 必填 | 别名 | 说明 |
-|------|------|------|------|------|
-| `userId` | Integer | 是 | | 用户 ID |
-| `memberRole` | String | 是 | `member_role`, `role`, `roleCode` | 项目角色 |
-| `displayName` | String | 否 | | 展示名 |
-| `email` | String | 否 | | 邮箱 |
 
 ```json
 {
   "projectName": "SOC2 FY2026",
   "projectInfo": "Annual SOC 2 Type II",
   "startDate": "2026-01-01T00:00:00",
-  "endDate": "2026-12-31T23:59:59",
-  "members": [
-    { "userId": 1, "memberRole": "COMP_ADMIN" },
-    { "userId": 2, "memberRole": "DOCUMENT_OWNER" }
-  ]
+  "endDate": "2026-12-31T23:59:59"
 }
 ```
 
@@ -167,7 +153,7 @@
 ### 2.4 角色槽位定义
 
 - **GET** `/api/project/role-slots`
-- **说明**：供创建/编辑表单渲染六个固定角色行
+- **说明**：供 Access Management 渲染六个固定角色行
 
 **响应 `data`**：
 
@@ -420,14 +406,16 @@
 
 ---
 
-### 3.8 模板文件列表（分页）
+### 3.8 模板文件列表（File management，分页）
 
 - **GET** `/api/request-master/{requestMasterId}/template-files`
+- **说明**：展示已上传文件及其关联条约（`relevant_criteria`，如 `CC1.1` / `Unrelevant`）
 
-| 参数 | 位置 | 必填 | 默认 |
-|------|------|------|------|
-| `pageNum` | Query | 否 | `1` |
-| `pageSize` | Query | 否 | `10` |
+| 参数 | 位置 | 必填 | 默认 | 说明 |
+|------|------|------|------|------|
+| `pageNum` | Query | 否 | `1` | 页码 |
+| `pageSize` | Query | 否 | `10` | 每页条数 |
+| `relevantCriteria` | Query | 否 | | 按条约筛选（别名 `relevant_criteria`） |
 
 ```json
 {
@@ -447,7 +435,7 @@
 
 ---
 
-### 3.9 上传模板文件
+### 3.9 上传模板文件（File management · Upload）
 
 - **POST** `/api/request-master/{requestMasterId}/template-files`
 - **Content-Type**：`multipart/form-data`
@@ -459,14 +447,21 @@
 
 ---
 
-### 3.10 删除模板文件
+### 3.10 查看/下载已上传文件（File management · View）
+
+- **GET** `/api/request-master/{requestMasterId}/template-files/{templateFileId}/download`
+- **说明**：下载已上传文件二进制流
+
+---
+
+### 3.11 删除模板文件（File management · delete）
 
 - **DELETE** `/api/request-master/{requestMasterId}/template-files/{templateFileId}`
 - **说明**：软删除
 
 ---
 
-### 3.11 版本列表
+### 3.12 版本列表
 
 - **GET** `/api/request-master/{requestMasterId}/versions`
 
@@ -483,7 +478,7 @@
 
 ---
 
-### 3.12 保存版本
+### 3.13 保存版本
 
 - **POST** `/api/request-master/{requestMasterId}/versions/save`
 - **说明**：将当前 Individual 快照保存为新版本
@@ -491,7 +486,7 @@
 
 ---
 
-### 3.13 版本详情
+### 3.14 版本详情
 
 - **GET** `/api/request-master/{requestMasterId}/versions/{versionId}`
 
@@ -533,8 +528,9 @@
 | `comment_content` | 用户备注 |
 | `upload_evidence_manual_status` | 证据人工状态 |
 | `request_send_date` | 发送时间 |
-| `request_individual_review_status` | 审核状态 |
-| `request_individual_review_comment` | 审核意见 |
+| `request_evidence_review_ai` | Review AI 列：`not right` / `need attention` / `all good`（send 后由 AI 的 red/yellow/green 映射；未 send 为 null） |
+| `request_individual_review_status` | 同 `request_evidence_review_ai`（兼容旧字段） |
+| `request_individual_review_comment` | AI 审核意见 |
 
 ---
 
@@ -615,7 +611,9 @@
   "request_assignee": "Bob",
   "upload_evidence_manual_status": "PENDING",
   "request_send_date": null,
-  "request_evidence_review_ai_status": "PENDING",
+  "request_evidence_review_ai": null,
+  "request_evidence_review_ai_color": null,
+  "request_evidence_review_ai_status": null,
   "ai_comment_content": null,
   "comment_content": null,
   "evidences": [
@@ -655,7 +653,15 @@
 
 - **POST** `/api/request/individual/{requestId}/send`
 - **Body**：无
-- **响应 `data`**：同详情（含 `request_send_date` 等更新字段）
+- **说明**：触发证据 AI 审核；AI 内部颜色码 `red`/`yellow`/`green` 映射为页面文案：
+  - `red` → `not right`
+  - `yellow` → `need attention`
+  - `green` → `all good`
+- **响应 `data`**：同详情，重点字段：
+  - `request_evidence_review_ai`：展示文案（列表 Review AI 列同源）
+  - `request_evidence_review_ai_color`：`red` / `yellow` / `green`
+  - `ai_comment_content`：AI 意见
+  - `request_send_date`：发送时间
 
 ---
 
@@ -732,8 +738,9 @@
 | POST | `/api/request-master` | 新建 |
 | PUT | `/api/request-master/{requestMasterId}` | 编辑 |
 | DELETE | `/api/request-master/{requestMasterId}` | 删除 |
-| GET | `/api/request-master/{requestMasterId}/template-files` | 模板分页列表 |
-| POST | `/api/request-master/{requestMasterId}/template-files` | 上传模板 |
+| GET | `/api/request-master/{requestMasterId}/template-files` | File management 列表（含条约） |
+| POST | `/api/request-master/{requestMasterId}/template-files` | 上传模板（可带 relevantCriteria） |
+| GET | `/api/request-master/{requestMasterId}/template-files/{templateFileId}/download` | View 下载已上传文件 |
 | DELETE | `/api/request-master/{requestMasterId}/template-files/{templateFileId}` | 删除模板 |
 | GET | `/api/request-master/{requestMasterId}/versions` | 版本列表 |
 | POST | `/api/request-master/{requestMasterId}/versions/save` | 保存版本 |

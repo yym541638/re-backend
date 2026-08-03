@@ -215,15 +215,18 @@ public class RequestMasterService {
     }
 
     public PageResponse<RequestMasterTemplateFileItem> listTemplateFiles(Long requestMasterId,
+                                                                           String relevantCriteria,
                                                                            Integer pageNum,
                                                                            Integer pageSize) {
         requireOwnedRequestMaster(requestMasterId);
         int resolvedPageNum = pageNum == null || pageNum < 1 ? 1 : pageNum;
         int resolvedPageSize = pageSize == null || pageSize < 1 ? 10 : pageSize;
-        long total = templateFileMapper.countByMasterId(requestMasterId);
+        String criteriaFilter = relevantCriteria == null || relevantCriteria.isBlank()
+            ? null : relevantCriteria.trim();
+        long total = templateFileMapper.countByMasterId(requestMasterId, criteriaFilter);
         long offset = (long) (resolvedPageNum - 1) * resolvedPageSize;
         List<RequestMasterTemplateFileItem> list = templateFileMapper
-            .listByMasterId(requestMasterId, offset, resolvedPageSize).stream()
+            .listByMasterId(requestMasterId, criteriaFilter, offset, resolvedPageSize).stream()
             .map(this::toTemplateFileItem)
             .toList();
         return PageResponse.of(total, resolvedPageNum, resolvedPageSize, list);
@@ -243,7 +246,8 @@ public class RequestMasterService {
         entity.setFileNo(templateFileMapper.maxFileNo(requestMasterId) + 1);
         entity.setFileName(storedFile.originalFilename());
         entity.setFilePath(storedFile.relativePath());
-        entity.setRelevantCriteria(relevantCriteria);
+        entity.setRelevantCriteria(relevantCriteria == null || relevantCriteria.isBlank()
+            ? null : relevantCriteria.trim());
         entity.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);
         entity.setCreatedBy(operatorId);
         entity.setUpdatedBy(operatorId);
@@ -262,6 +266,18 @@ public class RequestMasterService {
         templateFileMapper.softDelete(templateFileId, currentUserAccessor.requireUserId());
     }
 
+    /** View：下载已上传的模板文件（含条约 relevant_criteria 关联的文件）。 */
+    public RequestMasterTemplateFileDownload downloadUploadedTemplateFile(Long requestMasterId,
+                                                                          Long templateFileId) {
+        requireOwnedRequestMaster(requestMasterId);
+        RequestMasterTemplateFile file = templateFileMapper.selectById(templateFileId);
+        if (file == null || !requestMasterId.equals(file.getRequestMasterId())) {
+            throw new BizException(BizErrorCode.REQUEST_MASTER_TEMPLATE_NOT_FOUND);
+        }
+        byte[] content = localStorageService.readFileBytes(file.getFilePath());
+        return new RequestMasterTemplateFileDownload(file.getFileName(), content);
+    }
+
     public byte[] downloadTemplateFile() {
         try (InputStream inputStream = new ClassPathResource("templates/request_individual_template.csv")
             .getInputStream()) {
@@ -269,6 +285,9 @@ public class RequestMasterService {
         } catch (IOException exception) {
             throw new BizException(BizErrorCode.STORAGE_SAVE_FAILED);
         }
+    }
+
+    public record RequestMasterTemplateFileDownload(String fileName, byte[] content) {
     }
 
     public List<RequestMasterVersionListItem> listVersions(Long requestMasterId) {
@@ -457,7 +476,8 @@ public class RequestMasterService {
         item.setDocumentOwnerName(detail.getDocumentOwnerName());
         item.setUploadEvidenceManualStatus(detail.getUploadEvidenceManualStatus());
         item.setRequestSendDate(detail.getRequestSendDate());
-        item.setRequestIndividualReviewStatus(detail.getRequestEvidenceReviewAiStatus());
+        item.setRequestEvidenceReviewAi(detail.getRequestEvidenceReviewAi());
+        item.setRequestIndividualReviewStatus(detail.getRequestEvidenceReviewAi());
         item.setRequestIndividualReviewComment(detail.getAiCommentContent());
         item.setCommentContent(detail.getCommentContent());
         return item;

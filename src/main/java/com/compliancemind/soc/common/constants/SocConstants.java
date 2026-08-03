@@ -219,12 +219,47 @@ public final class SocConstants {
     public static final class RequestIndividual {
         public static final String CODE_PREFIX = "REQ";
         public static final String AI_REVIEW_PENDING = "PENDING";
+        /** 库内/AI 颜色码。 */
         public static final String AI_REVIEW_RED = "RED";
         public static final String AI_REVIEW_YELLOW = "YELLOW";
         public static final String AI_REVIEW_GREEN = "GREEN";
+        /** 页面 Review AI 展示文案（red/yellow/green 对应）。 */
+        public static final String AI_REVIEW_LABEL_NOT_RIGHT = "not right";
+        public static final String AI_REVIEW_LABEL_NEED_ATTENTION = "need attention";
+        public static final String AI_REVIEW_LABEL_ALL_GOOD = "all good";
         public static final String EVIDENCE_STATUS_PENDING = "PENDING";
         public static final String EVIDENCE_STATUS_UPLOADED = "UPLOADED";
         public static final String EVIDENCE_STATUS_REVIEWED = "REVIEWED";
+
+        private RequestIndividual() {
+        }
+
+        /** RED/YELLOW/GREEN（或 red/yellow/green）→ 列表/详情展示文案；未审核返回 null。 */
+        public static String toAiReviewLabel(String status) {
+            if (status == null || status.isBlank()) {
+                return null;
+            }
+            return switch (status.trim().toUpperCase()) {
+                case AI_REVIEW_RED -> AI_REVIEW_LABEL_NOT_RIGHT;
+                case AI_REVIEW_YELLOW -> AI_REVIEW_LABEL_NEED_ATTENTION;
+                case AI_REVIEW_GREEN -> AI_REVIEW_LABEL_ALL_GOOD;
+                default -> null;
+            };
+        }
+
+        /** 规范化为 RED/YELLOW/GREEN；无法识别则原样大写返回。 */
+        public static String normalizeAiReviewStatus(String status) {
+            if (status == null || status.isBlank()) {
+                return AI_REVIEW_PENDING;
+            }
+            return switch (status.trim().toUpperCase()) {
+                case AI_REVIEW_RED, "NOT RIGHT", "NOT_RIGHT" -> AI_REVIEW_RED;
+                case AI_REVIEW_YELLOW, "NEED ATTENTION", "NEED_ATTENTION" -> AI_REVIEW_YELLOW;
+                case AI_REVIEW_GREEN, "ALL GOOD", "ALL_GOOD" -> AI_REVIEW_GREEN;
+                case AI_REVIEW_PENDING -> AI_REVIEW_PENDING;
+                default -> status.trim().toUpperCase();
+            };
+        }
     }
 
     /** Gap analysis rows. */

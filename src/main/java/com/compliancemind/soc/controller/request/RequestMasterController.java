@@ -116,18 +116,22 @@ public class RequestMasterController {
     }
 
     /**
-     * 模板文件列表（分页）。
+     * File management：模板文件列表（分页）。每行含 files + relevant_criteria，展示条约与已上传文件对应关系。
      */
     @GetMapping("/{requestMasterId}/template-files")
     public ApiResponse<PageResponse<RequestMasterTemplateFileItem>> listTemplateFiles(
             @PathVariable("requestMasterId") Long requestMasterId,
+            @RequestParam(value = "relevantCriteria", required = false) String relevantCriteria,
+            @RequestParam(value = "relevant_criteria", required = false) String relevantCriteriaLegacy,
             @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
             @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
-        return ApiResponse.page(requestMasterService.listTemplateFiles(requestMasterId, pageNum, pageSize));
+        String criteria = relevantCriteria != null ? relevantCriteria : relevantCriteriaLegacy;
+        return ApiResponse.page(requestMasterService.listTemplateFiles(
+            requestMasterId, criteria, pageNum, pageSize));
     }
 
     /**
-     * 上传模板文件。
+     * File management：上传模板文件，并通过 relevantCriteria 关联条约（如 CC1.1 / Unrelevant）。
      */
     @PostMapping(value = "/{requestMasterId}/template-files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<RequestMasterTemplateFileItem> uploadTemplateFile(
@@ -140,7 +144,23 @@ public class RequestMasterController {
     }
 
     /**
-     * 删除模板文件（软删除）。
+     * File management：View —— 下载已上传的模板文件。
+     */
+    @GetMapping("/{requestMasterId}/template-files/{templateFileId}/download")
+    public ResponseEntity<byte[]> downloadUploadedTemplateFile(
+            @PathVariable("requestMasterId") Long requestMasterId,
+            @PathVariable("templateFileId") Long templateFileId) {
+        RequestMasterService.RequestMasterTemplateFileDownload download =
+            requestMasterService.downloadUploadedTemplateFile(requestMasterId, templateFileId);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"" + download.fileName() + "\"")
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .body(download.content());
+    }
+
+    /**
+     * File management：删除模板文件（软删除）。
      */
     @DeleteMapping("/{requestMasterId}/template-files/{templateFileId}")
     public ApiResponse<Void> deleteTemplateFile(@PathVariable("requestMasterId") Long requestMasterId,

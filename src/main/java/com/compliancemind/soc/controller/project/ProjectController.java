@@ -47,6 +47,7 @@ public class ProjectController {
      * 新建项目（JSON）。
      *
      * <p>POST /project/create，需 JWT；仅公司管理员可创建。
+     * 仅提交项目基本信息；创建人自动成为项目成员，其余角色请在 Access Management 分配。
      * 成功时返回 {@code project_id}；详情请调用 GET /project/{projectId}。</p>
      */
     @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -93,7 +94,7 @@ public class ProjectController {
     /**
      * Project User management 固定角色列表。
      *
-     * <p>GET /project/role-slots，供创建/编辑表单渲染六个角色行。</p>
+     * <p>GET /project/role-slots，供 Access Management 渲染六个角色行。</p>
      */
     @GetMapping("/role-slots")
     public ApiResponse<List<ProjectRoleSlotItem>> roleSlots() {
@@ -104,7 +105,7 @@ public class ProjectController {
      * 按公司名称查询本公司用户列表。
      *
      * <p>GET /project/company/users?companyName=xxx&amp;keyword=，需 JWT；仅公司管理员可调用。
-     * {@code companyName} 须与当前登录用户所属公司一致，用于创建项目时成员选择弹窗。</p>
+     * {@code companyName} 须与当前登录用户所属公司一致，用于 Access Management 成员选择弹窗。</p>
      */
     @GetMapping("/company/users")
     public ApiResponse<List<ProjectCompanyUserItem>> listCompanyUsers(

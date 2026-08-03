@@ -52,6 +52,14 @@ public class RequestIndividualListItem {
     @JsonProperty("request_send_date")
     private LocalDateTime requestSendDate;
 
+    /**
+     * Review AI 列：not right / need attention / all good（red/yellow/green 映射）。
+     */
+    @JsonProperty("request_evidence_review_ai")
+    @JsonAlias({"review_ai", "request_individual_review_status"})
+    private String requestEvidenceReviewAi;
+
+    /** 兼容旧字段名，值与 request_evidence_review_ai 相同。 */
     @JsonProperty("request_individual_review_status")
     private String requestIndividualReviewStatus;
 

@@ -54,6 +54,18 @@ public class RequestIndividualDetailResponse {
     @JsonProperty("request_send_date")
     private LocalDateTime requestSendDate;
 
+    /**
+     * Request Evidence Review AI：send 后回填，not right / need attention / all good。
+     */
+    @JsonProperty("request_evidence_review_ai")
+    @JsonAlias({"requestEvidenceReviewAi", "request_evidence_review_ai_status"})
+    private String requestEvidenceReviewAi;
+
+    /** AI 颜色码：red / yellow / green。 */
+    @JsonProperty("request_evidence_review_ai_color")
+    private String requestEvidenceReviewAiColor;
+
+    /** 兼容旧字段名，值与 request_evidence_review_ai 相同。 */
     @JsonProperty("request_evidence_review_ai_status")
     private String requestEvidenceReviewAiStatus;
 
