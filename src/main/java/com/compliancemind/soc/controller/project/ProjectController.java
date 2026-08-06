@@ -76,7 +76,7 @@ public class ProjectController {
      * Access Management：项目访问矩阵（项目行 × 角色列用户）。
      *
      * <p>GET /project/access-management?keyword=&amp;pageNum=&amp;pageSize=，需 JWT。
-     * 每行含 project_id、project_name、role_slots（六角色及已分配用户）。
+     * 每行含 project_id、project_name、role_slots（同一角色可多条，每用户一条；支持一人多角色）。
      * Invite 使用 POST /invitation-code/project/create；兑换码使用 POST /invitation-code/redeem。</p>
      */
     @GetMapping("/access-management")
@@ -142,7 +142,9 @@ public class ProjectController {
     /**
      * 保存项目成员（PRD 2.5.12）。
      *
-     * <p>PUT /project/{projectId}/members；项目创建后也可通过此接口调整项目维度角色。</p>
+     * <p>PUT /project/{projectId}/members；全量覆盖。
+     * 允许同一 userId 绑定多个 memberRole，也允许同一角色分配给多名用户；
+     * 仅禁止完全相同的 (userId, memberRole) 重复提交。</p>
      */
     @PutMapping("/{projectId}/members")
     public ApiResponse<List<ProjectMember>> saveMembers(@PathVariable("projectId") Long projectId,

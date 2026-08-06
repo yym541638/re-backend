@@ -18,6 +18,10 @@ public class PaymentSubmitRequest {
     @JsonAlias({"audit_type"})
     private String auditType;
 
+    /** 兼容购买页只传 type_switch 布尔开关的情况。 */
+    @JsonAlias({"type_switch"})
+    private Boolean typeSwitch;
+
     private Integer amount;
 
     @JsonAlias({"payment_method"})

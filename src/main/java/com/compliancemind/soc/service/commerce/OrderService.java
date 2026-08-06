@@ -67,12 +67,13 @@ public class OrderService {
     @Transactional(rollbackFor = Exception.class)
     public OrderRecord createOrder(PaymentSubmitRequest request) {
         UserAccount currentUser = currentUser();
-        Product product = productMapper.selectById(request.getProductId());
+        Product product = resolveProduct(request);
         if (product == null) {
             throw new BizException(BizErrorCode.COMMERCE_PRODUCT_NOT_FOUND);
         }
-        ProductPackage productPackage = productMapper.selectPackageById(request.getPackageId());
-        if (productPackage == null || !product.getProductId().equals(productPackage.getProductId())) {
+        ProductPackage productPackage = productService.resolvePurchasePackage(
+            product.getProductId(), request.getPackageId(), request.getSelectFeatures());
+        if (productPackage == null) {
             throw new BizException(BizErrorCode.COMMERCE_PACKAGE_NOT_FOUND);
         }
         OrderRecord existed = request.getOrderNo() == null || request.getOrderNo().isBlank()
@@ -82,7 +83,7 @@ public class OrderService {
             return existed;
         }
 
-        String resolvedAuditType = resolveAuditType(request.getAuditType(), productPackage.getDefaultType());
+        String resolvedAuditType = resolveAuditType(resolveRequestAuditType(request), productPackage.getDefaultType());
         Integer resolvedAmount = resolveAmount(productPackage, resolvedAuditType);
         if (resolvedAmount <= 0) {
             throw new BizException(BizErrorCode.ORDER_INVALID_PACKAGE_PRICE);
@@ -123,10 +124,7 @@ public class OrderService {
     @Transactional(rollbackFor = Exception.class)
     public void grantUserProductOnSubmit(PaymentSubmitRequest request) {
         UserAccount currentUser = currentUser();
-        if (request.getProductId() == null) {
-            throw new BizException(BizErrorCode.COMMERCE_PRODUCT_NOT_FOUND);
-        }
-        Product product = productMapper.selectById(request.getProductId());
+        Product product = resolveProduct(request);
         if (product == null) {
             throw new BizException(BizErrorCode.COMMERCE_PRODUCT_NOT_FOUND);
         }
@@ -137,7 +135,8 @@ public class OrderService {
         String includedFeatures = resolveSelectFeaturesText(request);
         ProductPackage pricingPackage = productService.resolvePurchasePackage(
             product.getProductId(), request.getPackageId(), request.getSelectFeatures());
-        String persistedAuditType = resolvePersistedAuditType(request.getAuditType(), pricingPackage);
+        String requestAuditType = resolveRequestAuditType(request);
+        String persistedAuditType = resolvePersistedAuditType(requestAuditType, pricingPackage);
 
         UserProduct existed = userProductMapper.selectByUserIdAndProductId(currentUser.getUserId(), product.getProductId());
         if (existed == null) {
@@ -174,6 +173,39 @@ public class OrderService {
             orderNo,
             product.getProductName(),
             SocConstants.OperationLog.Detail.PAYMENT_SUCCESS_EN);
+    }
+
+    /**
+     * 解析支付目标商品。兼容购买页历史行为：packages 接口曾把 packageId 填到 productId。
+     */
+    private Product resolveProduct(PaymentSubmitRequest request) {
+        Integer productId = request.getProductId();
+        Integer packageId = request.getPackageId();
+
+        if (productId != null) {
+            Product product = productMapper.selectById(productId);
+            if (product != null) {
+                return product;
+            }
+            // productId 实际是套餐 ID 时，回填 packageId 并解析父商品
+            ProductPackage productPackage = productMapper.selectPackageById(productId);
+            if (productPackage != null) {
+                if (packageId == null) {
+                    request.setPackageId(productPackage.getPackageId());
+                }
+                request.setProductId(productPackage.getProductId());
+                return productMapper.selectById(productPackage.getProductId());
+            }
+        }
+
+        if (packageId != null) {
+            ProductPackage productPackage = productMapper.selectPackageById(packageId);
+            if (productPackage != null) {
+                request.setProductId(productPackage.getProductId());
+                return productMapper.selectById(productPackage.getProductId());
+            }
+        }
+        return null;
     }
 
     public List<OrderRecord> myOrders() {
@@ -271,6 +303,7 @@ public class OrderService {
         }
         existed.setPackageId(orderRecord.getPackageId());
         //existed.setPackageName(orderRecord.getPackageName());
+        existed.setAuditType(orderRecord.getAuditType());
         existed.setIncludedFeatures(orderRecord.getIncludedFeatures());
         existed.setSourceOrderNo(orderRecord.getOrderNo());
         existed.setStatus(SocConstants.UserProduct.STATUS_ACTIVE);
@@ -351,6 +384,18 @@ public class OrderService {
             return;
         }
         operationLogService.recordSystem(moduleName, actionType, SocConstants.OperationLog.EntityType.ORDER, orderNo, productName, null, actionDetail);
+    }
+
+    private String resolveRequestAuditType(PaymentSubmitRequest request) {
+        if (request.getAuditType() != null && !request.getAuditType().isBlank()) {
+            return request.getAuditType().trim();
+        }
+        if (request.getTypeSwitch() != null) {
+            return Boolean.TRUE.equals(request.getTypeSwitch())
+                ? SocConstants.AuditType.DISPLAY_TYPE2
+                : SocConstants.AuditType.DISPLAY_TYPE1;
+        }
+        return null;
     }
 
     private String resolvePersistedAuditType(String requestAuditType, ProductPackage pricingPackage) {

@@ -274,6 +274,19 @@ public final class SocConstants {
         public static final String DEFAULT_CONTROL_TITLE_ZH = "未命名控制项";
     }
 
+    /** Risk table（侧栏 Risk table）。 */
+    public static final class Risk {
+        public static final String LEVEL_HIGH = "HIGH";
+        public static final String LEVEL_MEDIUM = "MEDIUM";
+        public static final String LEVEL_LOW = "LOW";
+        public static final String SOURCE_MANUAL = "MANUAL";
+        public static final String SOURCE_UPLOAD = "UPLOAD";
+        public static final String SOURCE_AI_GENERATION = "AI_GENERATION";
+
+        private Risk() {
+        }
+    }
+
     /** Projects. */
     public static final class Project {
         public static final String INITIAL_VERSION = "V1";
@@ -328,6 +341,7 @@ public final class SocConstants {
             public static final String INVITATION_CODE = "INVITATION_CODE";
             public static final String REPORT = "REPORT";
             public static final String GAP_ANALYSIS = "GAP_ANALYSIS";
+            public static final String RISK = "RISK";
         }
 
         public static final class Action {
@@ -362,6 +376,7 @@ public final class SocConstants {
             public static final String INVITATION_CODE = "INVITATION_CODE";
             public static final String USER = "USER";
             public static final String COMPANY = "COMPANY";
+            public static final String RISK = "RISK";
         }
 
         public static final class Detail {
@@ -391,6 +406,9 @@ public final class SocConstants {
             public static final String CONTROL_TEST_CREATE_EN = "Create control test";
             public static final String CONTROL_TEST_UPDATE_EN = "Update control test";
             public static final String CONTROL_TEST_DELETE_EN = "Delete control test";
+            public static final String RISK_CREATE_EN = "Create risk";
+            public static final String RISK_UPDATE_EN = "Update risk";
+            public static final String RISK_DELETE_EN = "Delete risk";
             public static final String RCM_CREATE_EN = "Create RCM";
             public static final String RCM_UPDATE_EN = "Update RCM";
             public static final String RCM_DELETE_EN = "Delete RCM";

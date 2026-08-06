@@ -204,18 +204,30 @@ public class InvitationCodeService {
 
         ProjectMember existed = projectMemberMapper.selectByProjectIdAndUserId(
             invitationCode.getProjectId(), currentUser.getUserId());
-        if (existed != null) {
-            response.setAlreadyMember(true);
-            response.setMemberRole(defaultRole(existed.getMemberRole()));
-            response.setMessage(localizedMessageResolver.message(SocConstants.MessageKeys.INVITATION_REDEEM_ALREADY_MEMBER));
-            return response;
-        }
-
         String targetRole = defaultRole(invitationCode.getMemberRole());
-        boolean roleOccupied = projectMemberMapper.listByProjectId(invitationCode.getProjectId()).stream()
-            .anyMatch(member -> targetRole.equals(RoleCodes.normalizeProjectRole(member.getMemberRole())));
-        if (roleOccupied) {
-            throw new BizException(BizErrorCode.PROJECT_MEMBER_ROLE_OCCUPIED);
+        if (existed != null) {
+            boolean alreadyHasRole = projectMemberMapper.listByProjectIdAndUserId(
+                    invitationCode.getProjectId(), currentUser.getUserId()).stream()
+                .anyMatch(member -> targetRole.equals(RoleCodes.normalizeProjectRole(member.getMemberRole())));
+            if (alreadyHasRole) {
+                response.setAlreadyMember(true);
+                response.setMemberRole(targetRole);
+                response.setMessage(localizedMessageResolver.message(SocConstants.MessageKeys.INVITATION_REDEEM_ALREADY_MEMBER));
+                return response;
+            }
+            // 已是项目成员但尚未拥有该邀请角色：追加角色，支持一人多角色
+            consumeForUser(invitationCode, currentUser);
+            response.setAlreadyMember(false);
+            response.setMemberRole(targetRole);
+            response.setMessage(localizedMessageResolver.message(SocConstants.MessageKeys.INVITATION_REDEEM_SUCCESS));
+            operationLogService.record(SocConstants.OperationLog.Module.INVITATION_CODE,
+                SocConstants.OperationLog.Action.UPDATE,
+                SocConstants.OperationLog.EntityType.PROJECT,
+                String.valueOf(project.getProjectId()),
+                project.getProjectName(),
+                project.getProjectId(),
+                SocConstants.OperationLog.Detail.INVITE_REDEEM_PREFIX_ZH + invitationCode.getCode());
+            return response;
         }
 
         consumeForUser(invitationCode, currentUser);
@@ -279,18 +291,20 @@ public class InvitationCodeService {
         // 持久化邀请码的使用人、使用时间、次数及状态变更
         invitationCodeMapper.updateUsage(invitationCode);
 
-        // 邀请码若绑定了项目，则自动把新用户加入该项目成员
+        // 邀请码若绑定了项目，则自动把新用户加入该项目成员（支持一人多角色）
         if (invitationCode.getProjectId() != null) {
-            // 查询该用户是否已是项目成员，避免重复插入
-            ProjectMember existed = projectMemberMapper.selectByProjectIdAndUserId(invitationCode.getProjectId(), userAccount.getUserId());
-            if (existed == null) {
+            String targetRole = defaultRole(invitationCode.getMemberRole());
+            boolean alreadyHasRole = projectMemberMapper.listByProjectIdAndUserId(
+                    invitationCode.getProjectId(), userAccount.getUserId()).stream()
+                .anyMatch(member -> targetRole.equals(RoleCodes.normalizeProjectRole(member.getMemberRole())));
+            if (!alreadyHasRole) {
                 ProjectMember member = new ProjectMember();
                 // 关联邀请码指定的目标项目
                 member.setProjectId(invitationCode.getProjectId());
                 // 关联刚注册成功的用户
                 member.setUserId(userAccount.getUserId());
                 // 成员角色取自邀请码预设角色（如 GENERAL_USER），并做归一化
-                member.setMemberRole(defaultRole(invitationCode.getMemberRole()));
+                member.setMemberRole(targetRole);
                 // 冗余展示名与邮箱，便于成员列表直接展示
                 member.setDisplayName(userAccount.getDisplayName());
                 member.setEmail(userAccount.getEmail());

@@ -84,6 +84,7 @@ public interface UserProductMapper {
     @Update("""
         update sys_user_product
         set package_id = #{packageId},
+            audit_type = #{auditType},
             included_features = #{includedFeatures},
             source_order_no = #{sourceOrderNo},
             status = #{status},

@@ -80,22 +80,56 @@ public class ProductService { // 商品业务服务类
         if (product == null) { // 商品不存在
             throw new BizException(BizErrorCode.COMMERCE_PRODUCT_NOT_FOUND); // 抛出商品未找到异常
         }
-        return buildPackageDetailResponses(product, selectedAuditType); // 组装套餐详情并返回
+        // 未显式传 auditType 时，已登录且已购用户回显其购买时的 Type
+        String effectiveAuditType = selectedAuditType;
+        if (effectiveAuditType == null || effectiveAuditType.isBlank()) {
+            effectiveAuditType = resolvePurchasedAuditType(product.getProductId());
+        }
+        return buildPackageDetailResponses(product, effectiveAuditType); // 组装套餐详情并返回
     }
 
     // 用户已购产品详情展示
     public List<ProductDetail2Response> purchasedDetail(Integer productId) {
         ensureCurrentUser();
-        Product product = productMapper.selectById(productId);
+        Product product = resolveProductEntity(productId);
         if (product == null) {
             throw new BizException(BizErrorCode.COMMERCE_PRODUCT_NOT_FOUND);
         }
         UserProduct userProduct = userProductMapper.selectByUserIdAndProductId(
-            currentUserAccessor.requireUserId(), productId);
+            currentUserAccessor.requireUserId(), product.getProductId());
         if (userProduct == null) {
             throw new BizException(BizErrorCode.COMMERCE_USER_PRODUCT_NOT_FOUND);
         }
         return List.of(buildPurchasedDetailResponse(product, userProduct));
+    }
+
+    /** 兼容购买页把 packageId 当作 productId 传入的详情查询。 */
+    private Product resolveProductEntity(Integer productOrPackageId) {
+        if (productOrPackageId == null) {
+            return null;
+        }
+        Product product = productMapper.selectById(productOrPackageId);
+        if (product != null) {
+            return product;
+        }
+        ProductPackage productPackage = productMapper.selectPackageById(productOrPackageId);
+        if (productPackage == null) {
+            return null;
+        }
+        return productMapper.selectById(productPackage.getProductId());
+    }
+
+    /** 当前用户已购 SOC2 的审计类型；未登录或未购买则返回 null。 */
+    private String resolvePurchasedAuditType(Integer productId) {
+        Integer userId = currentUserAccessor.currentUserId();
+        if (userId == null || productId == null) {
+            return null;
+        }
+        UserProduct userProduct = userProductMapper.selectByUserIdAndProductId(userId, productId);
+        if (userProduct == null || userProduct.getAuditType() == null || userProduct.getAuditType().isBlank()) {
+            return null;
+        }
+        return userProduct.getAuditType();
     }
 
     // 将商品下所有套餐转为 ProductDetail2Response 列表
@@ -104,7 +138,9 @@ public class ProductService { // 商品业务服务类
         List<ProductPackage> packageEntities = productMapper.listPackagesByProductId(product.getProductId()); // 查该商品全部套餐
         for (ProductPackage productPackage : packageEntities) { // 遍历每个套餐
             ProductDetail2Response response = new ProductDetail2Response(); // 创建详情 DTO
-            response.setProductId(productPackage.getPackageId()); // 前端展示用 ID 取套餐 ID
+            // 兼容购买页：历史前端把本字段当作套餐卡片 ID 并原样提交到 payment.productId
+            response.setProductId(productPackage.getPackageId());
+            response.setPackageId(productPackage.getPackageId());
             response.setProductName(productPackage.getPackageName()); // 展示名取套餐名
             response.setProductCode(product.getProductCode()); // 商品编码来自父商品
             response.setFeatures(parseJsonFeatureList(product.getAllFeatures())); // 解析商品全量特性 JSON
@@ -118,24 +154,29 @@ public class ProductService { // 商品业务服务类
 
     private ProductDetail2Response buildPurchasedDetailResponse(Product product, UserProduct userProduct) {
         ProductDetail2Response response = new ProductDetail2Response();
-        response.setProductId(product.getProductId());
+        // 与购买页 packages 对齐：卡片 ID 使用套餐 ID，便于前端回显同一卡片
+        Integer packageId = userProduct.getPackageId();
+        List<ProductPackage> packages = productMapper.listPackagesByProductId(product.getProductId());
+        ProductPackage pricingPackage = resolvePricingPackage(packages, userProduct);
+        if (packageId == null && pricingPackage != null) {
+            packageId = pricingPackage.getPackageId();
+        }
+        response.setProductId(packageId != null ? packageId : product.getProductId());
+        response.setPackageId(packageId);
         response.setProductName(userProduct.getProductName() != null && !userProduct.getProductName().isBlank()
             ? userProduct.getProductName()
-            : product.getProductName());
+            : (pricingPackage != null ? pricingPackage.getPackageName() : product.getProductName()));
         response.setProductCode(product.getProductCode());
         response.setFeatures(toIncludedFeatureList(userProduct.getIncludedFeatures()));
 
-        List<ProductPackage> packages = productMapper.listPackagesByProductId(product.getProductId());
-        ProductPackage pricingPackage = resolvePricingPackage(packages, userProduct);
         String purchasedAuditType = userProduct.getAuditType() != null && !userProduct.getAuditType().isBlank()
             ? userProduct.getAuditType()
             : (pricingPackage == null ? null : pricingPackage.getDefaultType());
+        String resolvedAuditType = resolveAuditType(purchasedAuditType, pricingPackage == null ? null : pricingPackage.getDefaultType());
+        response.setTypeSwitch(SocConstants.AuditType.INTERNAL_TYPE2.equals(resolvedAuditType));
         if (pricingPackage != null) {
-            String resolvedAuditType = resolveAuditType(null, purchasedAuditType);
-            response.setTypeSwitch(SocConstants.AuditType.INTERNAL_TYPE2.equals(resolvedAuditType));
             response.setPrice(resolvePrice(pricingPackage, purchasedAuditType).toString());
         } else {
-            response.setTypeSwitch(false);
             response.setPrice("0");
         }
         return response;
@@ -278,7 +319,8 @@ public class ProductService { // 商品业务服务类
     }
 
     /**
-     * 支付提交时解析应绑定的套餐：优先请求 packageId，再按 selectFeatures 精确匹配。
+     * 支付提交时解析应绑定的套餐：优先请求 packageId，再按 selectFeatures 精确匹配，
+     * 最后回退为「套餐能力 ⊆ 所选能力」中能力最多的套餐（兼容 Product Suite 全选五大原则）。
      */
     public ProductPackage resolvePurchasePackage(Integer productId, Integer packageId, String selectFeatures) {
         List<ProductPackage> packages = productMapper.listPackagesByProductId(productId);
@@ -291,13 +333,33 @@ public class ProductService { // 商品业务服务类
                     return productPackage;
                 }
             }
+            // 兼容购买页曾把 packageId 误传到 productId：再用全局套餐表确认归属
+            ProductPackage byId = productMapper.selectPackageById(packageId);
+            if (byId != null && productId.equals(byId.getProductId())) {
+                return byId;
+            }
         }
         Set<String> selected = normalizeFeatureSet(parseSelectFeatures(selectFeatures));
         if (!selected.isEmpty()) {
+            ProductPackage exact = null;
+            ProductPackage bestSubset = null;
+            int bestSize = -1;
             for (ProductPackage productPackage : packages) {
-                if (normalizeFeatureSet(parseJsonList(productPackage.getIncludedFeatures())).equals(selected)) {
-                    return productPackage;
+                Set<String> included = normalizeFeatureSet(parseJsonList(productPackage.getIncludedFeatures()));
+                if (included.equals(selected)) {
+                    exact = productPackage;
+                    break;
                 }
+                if (!included.isEmpty() && selected.containsAll(included) && included.size() > bestSize) {
+                    bestSubset = productPackage;
+                    bestSize = included.size();
+                }
+            }
+            if (exact != null) {
+                return exact;
+            }
+            if (bestSubset != null) {
+                return bestSubset;
             }
         }
         return null;

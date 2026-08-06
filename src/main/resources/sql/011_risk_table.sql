@@ -1,0 +1,25 @@
+-- Risk table（项目级风险清单），对应侧栏 Risk table 页面
+CREATE TABLE IF NOT EXISTS `soc_risk` (
+  `risk_id` bigint NOT NULL AUTO_INCREMENT,
+  `project_id` bigint NOT NULL,
+  `cc_criteria` varchar(64) DEFAULT NULL COMMENT 'CC Criteria，如 CC 6.1',
+  `cycle_name` varchar(128) DEFAULT NULL,
+  `modules_id` varchar(64) DEFAULT NULL,
+  `modules_name` varchar(128) DEFAULT NULL,
+  `cc_criteria_name` text DEFAULT NULL,
+  `sub_risk_id` varchar(64) DEFAULT NULL,
+  `sub_risk_name` varchar(255) DEFAULT NULL,
+  `points_of_focus_id` varchar(64) DEFAULT NULL,
+  `points_of_focus_name` text DEFAULT NULL,
+  `risk_level` varchar(40) NOT NULL DEFAULT 'MEDIUM' COMMENT 'HIGH / MEDIUM / LOW',
+  `risk_source` varchar(40) NOT NULL DEFAULT 'MANUAL' COMMENT 'MANUAL / UPLOAD / AI_GENERATION',
+  `additional_risk_profile_description` text DEFAULT NULL,
+  `deleted` tinyint NOT NULL DEFAULT 0,
+  `created_by` int DEFAULT NULL,
+  `updated_by` int DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`risk_id`),
+  KEY `idx_soc_risk_project` (`project_id`, `deleted`),
+  KEY `idx_soc_risk_cc` (`project_id`, `cc_criteria`, `deleted`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

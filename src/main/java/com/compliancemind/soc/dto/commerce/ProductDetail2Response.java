@@ -7,6 +7,8 @@ import lombok.Data;
 public class ProductDetail2Response {
     @JsonProperty("product_id")
     private Integer productId;
+    @JsonProperty("package_id")
+    private Integer packageId;
     @JsonProperty("product_name")
     private String productName;
     @JsonProperty("product_code")

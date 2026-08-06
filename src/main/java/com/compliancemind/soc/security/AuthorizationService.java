@@ -11,6 +11,8 @@ import com.compliancemind.soc.mapper.project.ProjectMemberMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * 公司级 / 项目级权限校验：管理员、成员角色、只读约束等。
  *
@@ -138,8 +140,10 @@ public class AuthorizationService {
         if (RoleCodes.canAccessAllProjects(currentRoleCode())) {
             return project;
         }
-        ProjectMember member = requireProjectMember(projectId, currentUserAccessor.requireUserId());
-        if (!RoleCodes.canEditProjectContent(member.getMemberRole())) {
+        List<ProjectMember> memberships = requireProjectMemberships(projectId, currentUserAccessor.requireUserId());
+        boolean canEdit = memberships.stream()
+            .anyMatch(member -> RoleCodes.canEditProjectContent(member.getMemberRole()));
+        if (!canEdit) {
             throw new BizException(BizErrorCode.AUTH_PROJECT_READ_ONLY);
         }
         return project;
@@ -153,8 +157,10 @@ public class AuthorizationService {
         if (RoleCodes.canAccessAllProjects(currentRoleCode())) {
             return project;
         }
-        ProjectMember member = requireProjectMember(projectId, currentUserAccessor.requireUserId());
-        if (!RoleCodes.canManageProject(member.getMemberRole())) {
+        List<ProjectMember> memberships = requireProjectMemberships(projectId, currentUserAccessor.requireUserId());
+        boolean canManage = memberships.stream()
+            .anyMatch(member -> RoleCodes.canManageProject(member.getMemberRole()));
+        if (!canManage) {
             throw new BizException(BizErrorCode.AUTH_PROJECT_MANAGE_DENIED);
         }
         return project;
@@ -172,11 +178,18 @@ public class AuthorizationService {
     }
 
     private ProjectMember requireProjectMember(Long projectId, Integer userId) {
-        ProjectMember member = projectMemberMapper.selectByProjectIdAndUserId(projectId, userId);
-        if (member == null) {
+        return requireProjectMemberships(projectId, userId).get(0);
+    }
+
+    /** 同一用户可兼多角色；读/写/管理权限取任一角色满足即可。 */
+    private List<ProjectMember> requireProjectMemberships(Long projectId, Integer userId) {
+        List<ProjectMember> memberships = projectMemberMapper.listByProjectIdAndUserId(projectId, userId);
+        if (memberships == null || memberships.isEmpty()) {
             throw new BizException(BizErrorCode.AUTH_USER_NOT_IN_PROJECT);
         }
-        member.setMemberRole(RoleCodes.normalizeProjectRole(member.getMemberRole()));
-        return member;
+        for (ProjectMember member : memberships) {
+            member.setMemberRole(RoleCodes.normalizeProjectRole(member.getMemberRole()));
+        }
+        return memberships;
     }
 }

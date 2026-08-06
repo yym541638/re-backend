@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -312,8 +313,8 @@ public class ProjectService {
             throw new BizException(BizErrorCode.PROJECT_MEMBERS_REQUIRED);
         }
 
-        Set<Integer> assignedUserIds = new HashSet<>();
-        Set<String> assignedRoles = new HashSet<>();
+        // 允许同一用户兼多角色、同一角色多人；仅禁止完全相同的 (userId, memberRole)
+        Set<String> assignedUserRolePairs = new HashSet<>();
         boolean hasProjectManager = false;
         List<ProjectMember> savedMembers = new ArrayList<>();
 
@@ -321,9 +322,6 @@ public class ProjectService {
             // 未选用户的角色槽位可跳过（如 Manager tier 2 留空）
             if (item.getUserId() == null) {
                 continue;
-            }
-            if (!assignedUserIds.add(item.getUserId())) {
-                throw new BizException(BizErrorCode.PROJECT_MEMBER_DUPLICATE_USER);
             }
 
             UserAccount user = userAccountMapper.selectByIdAndCompanyId(item.getUserId(), companyId);
@@ -335,7 +333,8 @@ public class ProjectService {
             if (!RoleCodes.isProjectRole(memberRole)) {
                 throw new BizException(BizErrorCode.PROJECT_MEMBER_ROLE_UNSUPPORTED);
             }
-            if (!assignedRoles.add(memberRole)) {
+            String userRoleKey = item.getUserId() + ":" + memberRole;
+            if (!assignedUserRolePairs.add(userRoleKey)) {
                 throw new BizException(BizErrorCode.PROJECT_MEMBER_DUPLICATE_USER);
             }
             if (RoleCodes.canManageProject(memberRole)) {
@@ -365,25 +364,36 @@ public class ProjectService {
         return savedMembers;
     }
 
+    /**
+     * Access Management / 详情用角色槽位：同一角色可有多条（每用户一条）；无用户时保留一条空槽位。
+     */
     private List<ProjectRoleSlotItem> buildRoleSlots(List<ProjectMember> members) {
-        Map<String, ProjectMember> memberByRole = members == null ? Map.of() : members.stream()
-            .collect(Collectors.toMap(
-                member -> RoleCodes.normalizeProjectRole(member.getMemberRole()),
-                member -> member,
-                (left, right) -> left
-            ));
+        Map<String, List<ProjectMember>> membersByRole = new LinkedHashMap<>();
+        if (members != null) {
+            for (ProjectMember member : members) {
+                String role = RoleCodes.normalizeProjectRole(member.getMemberRole());
+                membersByRole.computeIfAbsent(role, key -> new ArrayList<>()).add(member);
+            }
+        }
         List<ProjectRoleSlotItem> slots = new ArrayList<>();
         for (Map.Entry<String, String> entry : PROJECT_ROLE_SLOTS) {
-            ProjectRoleSlotItem slot = new ProjectRoleSlotItem();
-            slot.setRoleCode(entry.getKey());
-            slot.setRoleName(entry.getValue());
-            ProjectMember member = memberByRole.get(entry.getKey());
-            if (member != null) {
+            List<ProjectMember> roleMembers = membersByRole.getOrDefault(entry.getKey(), List.of());
+            if (roleMembers.isEmpty()) {
+                ProjectRoleSlotItem emptySlot = new ProjectRoleSlotItem();
+                emptySlot.setRoleCode(entry.getKey());
+                emptySlot.setRoleName(entry.getValue());
+                slots.add(emptySlot);
+                continue;
+            }
+            for (ProjectMember member : roleMembers) {
+                ProjectRoleSlotItem slot = new ProjectRoleSlotItem();
+                slot.setRoleCode(entry.getKey());
+                slot.setRoleName(entry.getValue());
                 slot.setUserId(member.getUserId());
                 slot.setDisplayName(member.getDisplayName());
                 slot.setEmail(member.getEmail());
+                slots.add(slot);
             }
-            slots.add(slot);
         }
         return slots;
     }

@@ -3,7 +3,7 @@ package com.compliancemind.soc.dto.project;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-/** Project User management 固定角色槽位。 */
+/** Project User management 角色槽位；同一角色可有多条（每用户一条）。 */
 @Data
 public class ProjectRoleSlotItem {
 

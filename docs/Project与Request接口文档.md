@@ -115,7 +115,7 @@
 ### 2.3 Access Management（访问矩阵）
 
 - **GET** `/api/project/access-management`
-- **说明**：项目行 × 角色列用户。Invite 用 `POST /invitation-code/project/create`；兑换用 `POST /invitation-code/redeem`（属邀请码模块）
+- **说明**：项目行 × 角色列用户。同一角色可返回多条（每用户一条），同一用户也可出现在多个角色下。Invite 用 `POST /invitation-code/project/create`；兑换用 `POST /invitation-code/redeem`（属邀请码模块）
 
 | 参数 | 位置 | 必填 | 默认 | 说明 |
 |------|------|------|------|------|
@@ -136,17 +136,40 @@
       "project_name": "SOC2 FY2026",
       "role_slots": [
         {
-          "role_code": "COMP_ADMIN",
-          "role_name": "Administrator",
+          "role_code": "PROJECT_OWNER",
+          "role_name": "Project Owner",
           "user_id": 1,
           "display_name": "Alice",
           "email": "alice@example.com"
+        },
+        {
+          "role_code": "DOCUMENT_OWNER",
+          "role_name": "Document Owner",
+          "user_id": 1,
+          "display_name": "Alice",
+          "email": "alice@example.com"
+        },
+        {
+          "role_code": "GENERAL_USER",
+          "role_name": "General User",
+          "user_id": 2,
+          "display_name": "Bob",
+          "email": "bob@example.com"
+        },
+        {
+          "role_code": "GENERAL_USER",
+          "role_name": "General User",
+          "user_id": 3,
+          "display_name": "Carol",
+          "email": "carol@example.com"
         }
       ]
     }
   ]
 }
 ```
+
+未分配用户的角色仍返回一条空槽位（`user_id` / `display_name` / `email` 为空），便于前端渲染。
 
 ---
 
@@ -273,15 +296,17 @@
 ### 2.9 保存项目成员
 
 - **PUT** `/api/project/{projectId}/members`
-- **说明**：项目创建后也可单独调整项目维度角色
+- **说明**：全量覆盖项目成员。允许同一 `userId` 绑定多个 `memberRole`，也允许同一角色分配给多名用户；仅禁止完全相同的 `(userId, memberRole)` 重复。
 
 **Body**：
 
 ```json
 {
   "members": [
-    { "userId": 1, "memberRole": "COMP_ADMIN" },
-    { "userId": 2, "memberRole": "PROJECT_OWNER", "displayName": "Bob", "email": "bob@example.com" }
+    { "userId": 1, "memberRole": "PROJECT_OWNER", "displayName": "Alice" },
+    { "userId": 1, "memberRole": "DOCUMENT_OWNER", "displayName": "Alice" },
+    { "userId": 2, "memberRole": "GENERAL_USER", "displayName": "Bob" },
+    { "userId": 3, "memberRole": "GENERAL_USER", "displayName": "Carol" }
   ]
 }
 ```

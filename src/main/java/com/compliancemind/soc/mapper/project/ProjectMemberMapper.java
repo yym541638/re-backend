@@ -40,6 +40,15 @@ public interface ProjectMemberMapper {
         select member_id, project_id, user_id, member_role, display_name, email, deleted, created_by, updated_by, created_at, updated_at
         from soc_project_member
         where project_id = #{projectId} and user_id = #{userId} and deleted = 0
+        order by member_id asc
+        """)
+    List<ProjectMember> listByProjectIdAndUserId(@Param("projectId") Long projectId, @Param("userId") Integer userId);
+
+    @Select("""
+        select member_id, project_id, user_id, member_role, display_name, email, deleted, created_by, updated_by, created_at, updated_at
+        from soc_project_member
+        where project_id = #{projectId} and user_id = #{userId} and deleted = 0
+        order by member_id asc
         limit 1
         """)
     ProjectMember selectByProjectIdAndUserId(@Param("projectId") Long projectId, @Param("userId") Integer userId);
