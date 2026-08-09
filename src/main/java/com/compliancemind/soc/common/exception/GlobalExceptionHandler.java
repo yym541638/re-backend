@@ -44,12 +44,36 @@ public class GlobalExceptionHandler {
     })
     public ApiResponse<Void> handleBadRequest(Exception exception) {
         log.warn("Bad request: {}", exception.getMessage());
+        String detail = resolveValidationMessage(exception);
+        if (detail != null && !detail.isBlank()) {
+            return ApiResponse.fail(BizErrorCode.COMMON_BAD_REQUEST.getCode(), detail);
+        }
         String msg = messageSource.getMessage(
             BizErrorCode.COMMON_BAD_REQUEST.getMessageKey(),
             null,
             BizErrorCode.COMMON_BAD_REQUEST.getMessageKey(),
             LocaleContextHolder.getLocale());
         return ApiResponse.fail(BizErrorCode.COMMON_BAD_REQUEST.getCode(), msg);
+    }
+
+    private String resolveValidationMessage(Exception exception) {
+        if (exception instanceof MethodArgumentNotValidException manv) {
+            if (manv.getBindingResult().getFieldError() != null) {
+                return manv.getBindingResult().getFieldError().getDefaultMessage();
+            }
+        }
+        if (exception instanceof BindException bindException) {
+            if (bindException.getBindingResult().getFieldError() != null) {
+                return bindException.getBindingResult().getFieldError().getDefaultMessage();
+            }
+        }
+        if (exception instanceof ConstraintViolationException cve) {
+            return cve.getConstraintViolations().stream()
+                .findFirst()
+                .map(violation -> violation.getMessage())
+                .orElse(null);
+        }
+        return null;
     }
 
     @ExceptionHandler(Exception.class)

@@ -29,12 +29,20 @@ public interface RequestMasterTemplateFileMapper {
         <script>
         select template_file_id, request_master_id, file_no, file_name, file_path, relevant_criteria,
                deleted, created_by, updated_by, created_at, updated_at
-        from soc_request_master_template_file
+        from soc_request_master_template_file t
         where deleted = 0 and request_master_id = #{requestMasterId}
         <if test="relevantCriteria != null and relevantCriteria != ''">
           and relevant_criteria = #{relevantCriteria}
         </if>
-        order by file_no asc, template_file_id asc
+        order by coalesce((
+          select min(r.request_id)
+          from soc_request r
+          where r.deleted = 0
+            and r.request_master_id = t.request_master_id
+            and replace(upper(trim(r.cc_criteria)), ' ', '')
+              = replace(upper(trim(t.relevant_criteria)), ' ', '')
+        ), 999999999999),
+        t.template_file_id asc
         limit #{offset}, #{pageSize}
         </script>
         """)
@@ -46,9 +54,17 @@ public interface RequestMasterTemplateFileMapper {
     @Select("""
         select template_file_id, request_master_id, file_no, file_name, file_path, relevant_criteria,
                deleted, created_by, updated_by, created_at, updated_at
-        from soc_request_master_template_file
+        from soc_request_master_template_file t
         where deleted = 0 and request_master_id = #{requestMasterId}
-        order by file_no asc, template_file_id asc
+        order by coalesce((
+          select min(r.request_id)
+          from soc_request r
+          where r.deleted = 0
+            and r.request_master_id = t.request_master_id
+            and replace(upper(trim(r.cc_criteria)), ' ', '')
+              = replace(upper(trim(t.relevant_criteria)), ' ', '')
+        ), 999999999999),
+        t.template_file_id asc
         """)
     List<RequestMasterTemplateFile> listAllByMasterId(@Param("requestMasterId") Long requestMasterId);
 

@@ -65,15 +65,18 @@ public class RequestMasterController {
     }
 
     /**
-     * 下载 Individual 批量导入 CSV 模板。
+     * File management：下载 SOC 2 Evidence Collection Spreadsheet 模板（xlsx）。
      */
     @GetMapping("/template-files/download-template")
     public ResponseEntity<byte[]> downloadTemplate() {
-        byte[] content = requestMasterService.downloadTemplateFile();
+        RequestMasterService.RequestMasterTemplateFileDownload download =
+            requestMasterService.downloadTemplateFile();
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"request_individual_template.csv\"")
-            .contentType(MediaType.parseMediaType("text/csv"))
-            .body(content);
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"SOC 2 Evidence Collection Spreadsheet.xlsx\"")
+            .contentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .body(download.content());
     }
 
     /**

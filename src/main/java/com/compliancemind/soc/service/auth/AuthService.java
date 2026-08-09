@@ -88,6 +88,9 @@ public class AuthService {
                 throw new BizException(BizErrorCode.AUTH_INVITATION_COMPANY_MISSING);
             }
         } else {
+            if (request.getCompanyName() == null || request.getCompanyName().isBlank()) {
+                throw new BizException(BizErrorCode.COMMON_BAD_REQUEST);
+            }
             //查询公司主体 是否存在
             company = companyMapper.selectByName(request.getCompanyName().trim());
             //不存在新增
@@ -106,7 +109,8 @@ public class AuthService {
         userAccount.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         boolean hasInvitation = invitationCode != null;
         String permissionCode = resolvePermissionCode(request, invitationCode);
-        String userType = resolveUserType(request);
+        // 有邀请码时业务身份不再由注册页选择，统一默认 CLIENT
+        String userType = hasInvitation ? UserTypes.CLIENT : resolveUserType(request);
         ensureCompanyAdminAssignable(company.getCompanyId(), permissionCode);
         userAccount.setRoleCode(permissionCode);
         userAccount.setUserType(userType);

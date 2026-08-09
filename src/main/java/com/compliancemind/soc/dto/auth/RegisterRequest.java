@@ -24,8 +24,11 @@ public class RegisterRequest {
     @NotBlank(message = "手机号不能为空")
     private String phone;
 
+    /**
+     * 公司名称。
+     * <p>无邀请码时必填；有邀请码时由邀请码绑定公司决定，可省略。</p>
+     */
     @JsonAlias({"companyName"})
-    @NotBlank(message = "公司名称不能为空")
     private String companyName;
 
     /**

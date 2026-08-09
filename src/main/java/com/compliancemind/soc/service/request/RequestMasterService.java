@@ -278,10 +278,16 @@ public class RequestMasterService {
         return new RequestMasterTemplateFileDownload(file.getFileName(), content);
     }
 
-    public byte[] downloadTemplateFile() {
-        try (InputStream inputStream = new ClassPathResource("templates/request_individual_template.csv")
-            .getInputStream()) {
-            return inputStream.readAllBytes();
+    /**
+     * File management · Download template：SOC 2 Evidence Collection Spreadsheet.xlsx。
+     */
+    public RequestMasterTemplateFileDownload downloadTemplateFile() {
+        ClassPathResource resource = new ClassPathResource(
+            "templates/SOC_2_Evidence_Collection_Spreadsheet.xlsx");
+        try (InputStream inputStream = resource.getInputStream()) {
+            return new RequestMasterTemplateFileDownload(
+                "SOC 2 Evidence Collection Spreadsheet.xlsx",
+                inputStream.readAllBytes());
         } catch (IOException exception) {
             throw new BizException(BizErrorCode.STORAGE_SAVE_FAILED);
         }
