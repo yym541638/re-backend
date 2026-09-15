@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
- * 变更用户系统角色：{@code COMP_ADMIN} / {@code COMP_USER}。
+ * 变更用户系统角色：{@code SYS_ADMIN} / {@code SYS_USER}。
  */
 @Data
 public class UpdateSystemRoleRequest {

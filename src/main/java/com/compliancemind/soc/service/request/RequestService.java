@@ -164,10 +164,20 @@ public class RequestService {
         }
         entity.setRequestDescription(request.getRequestDescription());
         applyDocumentOwner(entity, request.getDocumentOwnerUserId(), request.getDocumentOwnerName(), entity.getProjectId());
-        entity.setRequestAssignee(request.getRequestAssignee());
+        // Always persist assignee (including clear to empty).
+        entity.setRequestAssignee(
+            request.getRequestAssignee() == null ? null : request.getRequestAssignee().trim());
         entity.setUserComment(request.getCommentContent());
         if (request.getUploadEvidenceManualStatus() != null) {
             entity.setEvidenceManualStatus(request.getUploadEvidenceManualStatus().trim());
+        }
+        if (request.getAiReviewStatus() != null) {
+            String normalized = SocConstants.RequestIndividual.normalizeAiReviewStatus(
+                request.getAiReviewStatus());
+            entity.setAiReviewStatus(normalized);
+        }
+        if (request.getAiReviewComment() != null) {
+            entity.setAiReviewComment(request.getAiReviewComment().trim());
         }
         entity.setLastUpdateAt(LocalDateTime.now());
         entity.setCurrentVersion(nextVersion(entity.getCurrentVersion()));
@@ -243,6 +253,25 @@ public class RequestService {
             SocConstants.OperationLog.Detail.REQUEST_DELETE_ATTACHMENT_PREFIX_EN + attachmentId);
     }
 
+    /** View / download evidence attachment. */
+    public AttachmentDownload downloadAttachment(Long requestId, Long attachmentId) {
+        ComplianceRequest complianceRequest = requireOwnedRequest(requestId);
+        authorizationService.requireProjectRead(complianceRequest.getProjectId());
+        RequestAttachment attachment = requestAttachmentMapper.selectById(attachmentId);
+        if (attachment == null || !requestId.equals(attachment.getRequestId())) {
+            throw new BizException(BizErrorCode.REQUEST_ATTACHMENT_NOT_FOUND);
+        }
+        byte[] content = localStorageService.readFileBytes(attachment.getFilePath());
+        String contentType = attachment.getContentType();
+        if (contentType == null || contentType.isBlank()) {
+            contentType = "application/octet-stream";
+        }
+        return new AttachmentDownload(attachment.getFileName(), contentType, content);
+    }
+
+    public record AttachmentDownload(String fileName, String contentType, byte[] content) {
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long requestId) {
         ComplianceRequest complianceRequest = requireOwnedRequest(requestId);
@@ -264,17 +293,29 @@ public class RequestService {
                                     Integer documentOwnerUserId,
                                     String documentOwnerName,
                                     Long projectId) {
+        String ownerName = documentOwnerName == null ? null : documentOwnerName.trim();
+        if (ownerName != null && ownerName.isEmpty()) {
+            ownerName = null;
+        }
         if (documentOwnerUserId != null) {
             Project project = projectMapper.selectById(projectId);
-            UserAccount user = userAccountMapper.selectByIdAndCompanyId(documentOwnerUserId, project.getCompanyId());
+            if (project == null) {
+                throw new BizException(BizErrorCode.PROJECT_NOT_FOUND);
+            }
+            UserAccount user = userAccountMapper.selectByIdAndCompanyId(
+                documentOwnerUserId, project.getCompanyId());
             if (user == null) {
-                throw new BizException(BizErrorCode.AUTH_USER_NOT_FOUND);
+                // Fallback: still persist display name so list/detail can show it.
+                entity.setDocumentOwnerUserId(documentOwnerUserId);
+                entity.setDocumentOwner(firstNonBlank(ownerName, String.valueOf(documentOwnerUserId)));
+                return;
             }
             entity.setDocumentOwnerUserId(user.getUserId());
-            entity.setDocumentOwner(firstNonBlank(documentOwnerName, user.getDisplayName()));
+            entity.setDocumentOwner(firstNonBlank(ownerName, user.getDisplayName()));
             return;
         }
-        entity.setDocumentOwner(documentOwnerName);
+        entity.setDocumentOwnerUserId(null);
+        entity.setDocumentOwner(ownerName);
     }
 
     private RequestIndividualListItem toIndividualListItem(ComplianceRequest request) {
@@ -290,6 +331,7 @@ public class RequestService {
         item.setRequestAssignee(request.getRequestAssignee());
         item.setDocumentOwnerName(request.getDocumentOwner());
         item.setUploadEvidence(attachments.stream().map(RequestAttachment::getFileName).collect(Collectors.joining(", ")));
+        item.setEvidences(attachments.stream().map(this::toEvidenceItem).toList());
         item.setUploadEvidenceDateTime(attachments.isEmpty() ? null : attachments.get(0).getCreatedAt());
         item.setCommentContent(request.getUserComment());
         item.setUploadEvidenceManualStatus(request.getEvidenceManualStatus());

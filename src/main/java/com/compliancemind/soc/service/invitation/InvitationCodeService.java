@@ -95,7 +95,7 @@ public class InvitationCodeService {
 
     /**
      * 创建公司邀请码（System Users「生成公司邀请码」）。
-     * <p>仅公司管理员；注册时默认系统角色 {@link RoleCodes#COMPANY_USER}。</p>
+     * <p>仅公司管理员；注册时默认系统角色 {@link RoleCodes#SYSTEM_USER}。</p>
      */
     @Transactional(rollbackFor = Exception.class)
     public InvitationCode createCompanyInvitation(CompanyInvitationCreateRequest request) {
@@ -106,7 +106,7 @@ public class InvitationCodeService {
             throw new BizException(BizErrorCode.AUTH_INVITATION_COMPANY_MISSING);
         }
         String memberRole = request.getMemberRole() == null || request.getMemberRole().isBlank()
-            ? RoleCodes.COMPANY_USER
+            ? RoleCodes.SYSTEM_USER
             : RoleCodes.normalizeSystemRole(request.getMemberRole());
         if (!RoleCodes.isSystemRole(memberRole)) {
             throw new BizException(BizErrorCode.AUTH_UNSUPPORTED_USER_ROLE);

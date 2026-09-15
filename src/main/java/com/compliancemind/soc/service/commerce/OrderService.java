@@ -119,7 +119,7 @@ public class OrderService {
     }
 
     /**
-     * 支付提交（Demo）：直接写入/更新用户已购产品，不区分套餐。
+     * 支付提交（Demo）：落已支付订单 + 开通/更新用户已购产品。
      */
     @Transactional(rollbackFor = Exception.class)
     public void grantUserProductOnSubmit(PaymentSubmitRequest request) {
@@ -128,15 +128,54 @@ public class OrderService {
         if (product == null) {
             throw new BizException(BizErrorCode.COMMERCE_PRODUCT_NOT_FOUND);
         }
-        //如果前端没传订单号,后台自动生成
+        ProductPackage pricingPackage = productService.resolvePurchasePackage(
+            product.getProductId(), request.getPackageId(), request.getSelectFeatures());
+        if (pricingPackage == null) {
+            throw new BizException(BizErrorCode.COMMERCE_PACKAGE_NOT_FOUND);
+        }
+
         String orderNo = request.getOrderNo() == null || request.getOrderNo().isBlank()
             ? generateOrderNo(currentUser.getUserId())
             : request.getOrderNo().trim();
         String includedFeatures = resolveSelectFeaturesText(request);
-        ProductPackage pricingPackage = productService.resolvePurchasePackage(
-            product.getProductId(), request.getPackageId(), request.getSelectFeatures());
+        if (includedFeatures == null || includedFeatures.isBlank()) {
+            includedFeatures = resolveIncludedFeaturesText(request, pricingPackage);
+        }
         String requestAuditType = resolveRequestAuditType(request);
         String persistedAuditType = resolvePersistedAuditType(requestAuditType, pricingPackage);
+        String resolvedAuditType = resolveAuditType(requestAuditType, pricingPackage.getDefaultType());
+        Integer resolvedAmount = resolveAmount(pricingPackage, resolvedAuditType);
+        if (resolvedAmount <= 0) {
+            throw new BizException(BizErrorCode.ORDER_INVALID_PACKAGE_PRICE);
+        }
+
+        OrderRecord existedOrder = orderMapper.selectByOrderNo(orderNo);
+        if (existedOrder == null) {
+            OrderRecord orderRecord = new OrderRecord();
+            orderRecord.setOrderNo(orderNo);
+            orderRecord.setUserId(currentUser.getUserId());
+            orderRecord.setProductId(product.getProductId());
+            orderRecord.setPackageId(pricingPackage.getPackageId());
+            orderRecord.setProductName(product.getProductName());
+            orderRecord.setPackageName(pricingPackage.getPackageName());
+            orderRecord.setAuditType(persistedAuditType);
+            orderRecord.setIncludedFeatures(includedFeatures);
+            orderRecord.setAmount(resolvedAmount);
+            orderRecord.setPaymentMethod(request.getPaymentMethod() == null || request.getPaymentMethod().isBlank()
+                ? null
+                : request.getPaymentMethod().trim());
+            orderRecord.setStatus(SocConstants.Order.STATUS_PAID);
+            orderRecord.setTransactionId(SocConstants.Order.MOCK_TX_PREFIX + System.currentTimeMillis());
+            orderRecord.setPayTime(LocalDateTime.now());
+            orderMapper.insert(orderRecord);
+        } else if (currentUser.getUserId().equals(existedOrder.getUserId())
+            && !SocConstants.Order.STATUS_PAID.equalsIgnoreCase(existedOrder.getStatus())) {
+            orderMapper.updatePayment(
+                orderNo,
+                SocConstants.Order.STATUS_PAID,
+                SocConstants.Order.MOCK_TX_PREFIX + System.currentTimeMillis(),
+                LocalDateTime.now());
+        }
 
         UserProduct existed = userProductMapper.selectByUserIdAndProductId(currentUser.getUserId(), product.getProductId());
         if (existed == null) {
@@ -144,7 +183,7 @@ public class OrderService {
             userProduct.setUserId(currentUser.getUserId());
             userProduct.setProductId(product.getProductId());
             userProduct.setProductName(product.getProductName());
-            userProduct.setPackageId(pricingPackage == null ? request.getPackageId() : pricingPackage.getPackageId());
+            userProduct.setPackageId(pricingPackage.getPackageId());
             userProduct.setIncludedFeatures(includedFeatures);
             userProduct.setSourceOrderNo(orderNo);
             userProduct.setStatus(SocConstants.UserProduct.STATUS_ACTIVE);
@@ -152,7 +191,7 @@ public class OrderService {
             userProduct.setAuditType(persistedAuditType);
             userProductMapper.insert(userProduct);
         } else {
-            existed.setPackageId(pricingPackage == null ? request.getPackageId() : pricingPackage.getPackageId());
+            existed.setPackageId(pricingPackage.getPackageId());
             existed.setIncludedFeatures(includedFeatures);
             existed.setAuditType(persistedAuditType);
             existed.setSourceOrderNo(orderNo);

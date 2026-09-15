@@ -80,34 +80,36 @@ public class AuthService {
 
         InvitationCode invitationCode = null;
         Company company;
-        if (request.getInvitationCode() != null && !request.getInvitationCode().isBlank()) {
-            //验证邀请码是否在系统中存在（邀请码应该是和一个公司绑定的一对一）
+        boolean hasInvitation = request.getInvitationCode() != null
+            && !request.getInvitationCode().isBlank();
+        if (hasInvitation) {
+            // 加入公司：必须持有可用邀请码，公司由邀请码绑定
             invitationCode = invitationCodeService.requireUsableCode(request.getInvitationCode().trim());
             company = companyMapper.selectById(invitationCode.getCompanyId());
             if (company == null) {
                 throw new BizException(BizErrorCode.AUTH_INVITATION_COMPANY_MISSING);
             }
         } else {
+            // 开户：创建新公司；同名（忽略大小写）禁止挂靠，须走邀请码加入
             if (request.getCompanyName() == null || request.getCompanyName().isBlank()) {
                 throw new BizException(BizErrorCode.COMMON_BAD_REQUEST);
             }
-            //查询公司主体 是否存在
-            company = companyMapper.selectByName(request.getCompanyName().trim());
-            //不存在新增
-            if (company == null) {
-                company = new Company();
-                company.setCompanyName(request.getCompanyName().trim());
-                companyMapper.insert(company);
+            String companyName = request.getCompanyName().trim();
+            Company existing = companyMapper.selectByName(companyName);
+            if (existing != null) {
+                throw new BizException(BizErrorCode.AUTH_COMPANY_ALREADY_EXISTS);
             }
+            company = new Company();
+            company.setCompanyName(companyName);
+            companyMapper.insert(company);
         }
-           //存在就创建用户账号
         UserAccount userAccount = new UserAccount();
         userAccount.setCompanyId(company.getCompanyId());
         userAccount.setDisplayName(resolveDisplayName(request));
         userAccount.setEmail(request.getEmail().trim());
         userAccount.setPhone(request.getPhone().trim());
         userAccount.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        boolean hasInvitation = invitationCode != null;
+        // 开户强制 SYS_ADMIN；邀请加入默认 SYS_USER（或邀请码指定的系统角色）
         String permissionCode = resolvePermissionCode(request, invitationCode);
         // 有邀请码时业务身份不再由注册页选择，统一默认 CLIENT
         String userType = hasInvitation ? UserTypes.CLIENT : resolveUserType(request);
@@ -155,11 +157,14 @@ public class AuthService {
         response.setToken(jwtService.generateToken(userAccount.getUserId(), userAccount.getDisplayName(), roleCode));
         // token 有效时长（秒），来自配置 app.jwt.expire-seconds
         response.setExpireSeconds(expireSeconds);
-        // 统计用户当前生效中的已购产品数量
+        // 个人已购，或同公司任一账号已购（邀请加入的同事可共享公司套餐权益）
         long activeProducts = userProductMapper.countActiveByUserId(userAccount.getUserId());
-        // 购买状态：1=已购买，0=未购买（供前端展示或逻辑判断）
+        if (activeProducts <= 0 && userAccount.getCompanyId() != null) {
+            activeProducts = userProductMapper.countActiveByCompanyId(userAccount.getCompanyId());
+        }
+        // 购买状态：1=已购买（含公司共享），0=未购买
         response.setPurchaseStatus(activeProducts > 0 ? 1 : 0);
-        // 登录后建议跳转页：已购 → 订单/业务页 order，未购 → 支付页 payment
+        // 登录后建议跳转：已购 → 业务页，未购 → 支付页
         response.setRedirectTo(activeProducts > 0 ? "order" : "payment");
 
         LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo();
@@ -179,11 +184,11 @@ public class AuthService {
         userInfo.setUserType(UserTypes.normalize(userAccount.getUserType()));
         // 归一化后的权限，序列化为 user_info.role
         userInfo.setRoleCode(roleCode);
-        // 双层权限：系统角色 COMP_ADMIN / COMP_USER
+        // 双层权限：系统角色 SYS_ADMIN / SYS_USER
         String systemRole = RoleCodes.toSystemRole(roleCode);
         userInfo.setSystemRole(systemRole);
-        // 旧前端兼容：permissionCode=administrator → COMP_ADMIN
-        userInfo.setPermissionCode(RoleCodes.COMPANY_ADMIN.equals(systemRole) ? "administrator" : "user");
+        // 旧前端兼容：permissionCode=administrator → SYS_ADMIN
+        userInfo.setPermissionCode(RoleCodes.SYSTEM_ADMIN.equals(systemRole) ? "administrator" : "user");
         response.setUser(userInfo);
         return response;
     }
@@ -204,45 +209,30 @@ public class AuthService {
     }
 
     /**
-     * 解析系统角色：有邀请码默认 {@link RoleCodes#COMPANY_USER}（或邀请码上的 member_role），
-     * 无邀请码默认 {@link RoleCodes#COMPANY_ADMIN}。
+     * 解析系统角色。
+     * <ul>
+     *   <li>无邀请码（开户）：强制 {@link RoleCodes#SYSTEM_ADMIN}，忽略客户端传入的角色。</li>
+     *   <li>有邀请码（加入）：忽略客户端自选角色；优先邀请码 {@code member_role} 中的系统角色，否则 {@link RoleCodes#SYSTEM_USER}。</li>
+     * </ul>
      */
     private String resolvePermissionCode(RegisterRequest request, InvitationCode invitationCode) {
-        String raw = request.getPermissionCode();
-        if (raw == null || raw.isBlank()) {
-            // roleCode 若是用户类型则不能当作权限
-            if (!UserTypes.isUserType(request.getRoleCode())) {
-                raw = request.getRoleCode();
+        if (invitationCode == null) {
+            return RoleCodes.SYSTEM_ADMIN;
+        }
+        if (invitationCode.getMemberRole() != null && !invitationCode.getMemberRole().isBlank()) {
+            String fromInvite = RoleCodes.normalizeSystemRole(invitationCode.getMemberRole());
+            if (RoleCodes.SYSTEM_ADMIN.equals(fromInvite) || RoleCodes.SYSTEM_USER.equals(fromInvite)) {
+                return fromInvite;
             }
         }
-        if (raw == null || raw.isBlank()) {
-            if (invitationCode != null) {
-                if (invitationCode.getMemberRole() != null && !invitationCode.getMemberRole().isBlank()) {
-                    String fromInvite = RoleCodes.normalizeSystemRole(invitationCode.getMemberRole());
-                    if (RoleCodes.isSystemRole(fromInvite)) {
-                        return fromInvite;
-                    }
-                }
-                return RoleCodes.COMPANY_USER;
-            }
-            return RoleCodes.COMPANY_ADMIN;
-        }
-        // 注册页系统角色仅显式 Admin / Comp User；细粒度角色仍按公司角色写入
-        if (RoleCodes.isExplicitSystemRoleInput(raw)) {
-            return RoleCodes.normalizeSystemRole(raw);
-        }
-        String normalized = RoleCodes.normalizeCompanyRole(raw);
-        if (!RoleCodes.isCompanyRole(normalized)) {
-            throw new BizException(BizErrorCode.AUTH_UNSUPPORTED_USER_ROLE);
-        }
-        return normalized;
+        return RoleCodes.SYSTEM_USER;
     }
 
     private void ensureCompanyAdminAssignable(Integer companyId, String permissionCode) {
-        if (!RoleCodes.COMPANY_ADMIN.equals(permissionCode)) {
+        if (!RoleCodes.SYSTEM_ADMIN.equals(permissionCode)) {
             return;
         }
-        if (userAccountMapper.countByCompanyIdAndRoleCode(companyId, RoleCodes.COMPANY_ADMIN) > 0) {
+        if (userAccountMapper.countByCompanyIdAndRoleCode(companyId, RoleCodes.SYSTEM_ADMIN) > 0) {
             throw new BizException(BizErrorCode.AUTH_COMPANY_ADMIN_EXISTS);
         }
     }

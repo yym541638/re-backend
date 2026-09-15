@@ -67,7 +67,7 @@ public class LegacyUserController {
     /**
      * 用户列表。
      *
-     * <p>GET /user/list，需 JWT 且为系统管理员（COMP_ADMIN）。</p>
+     * <p>GET /user/list，需 JWT 且为系统管理员（SYS_ADMIN）。</p>
      * <ul>
      *   <li>默认：仅本公司用户（Manage members / PRD 2.5.12 成员下拉）</li>
      *   <li>{@code allCompanies=true}：跨公司全部用户（System Users）</li>
@@ -103,7 +103,7 @@ public class LegacyUserController {
     /**
      * 变更用户系统角色（System Users）。
      *
-     * <p>PUT /user/{id}/system-role，需 JWT 且为系统管理员；仅支持 COMP_ADMIN / COMP_USER。</p>
+     * <p>PUT /user/{id}/system-role，需 JWT 且为系统管理员；仅支持 SYS_ADMIN / SYS_USER。</p>
      */
     @PutMapping("/{id}/system-role")
     @Transactional(rollbackFor = Exception.class)
@@ -120,13 +120,13 @@ public class LegacyUserController {
             throw new BizException(BizErrorCode.AUTH_UNSUPPORTED_USER_ROLE);
         }
         String currentSystemRole = RoleCodes.toSystemRole(target.getRoleCode());
-        if (RoleCodes.COMPANY_ADMIN.equals(systemRole) && !RoleCodes.COMPANY_ADMIN.equals(currentSystemRole)) {
-            if (userAccountMapper.countByCompanyIdAndRoleCode(companyId, RoleCodes.COMPANY_ADMIN) > 0) {
+        if (RoleCodes.SYSTEM_ADMIN.equals(systemRole) && !RoleCodes.SYSTEM_ADMIN.equals(currentSystemRole)) {
+            if (userAccountMapper.countByCompanyIdAndRoleCode(companyId, RoleCodes.SYSTEM_ADMIN) > 0) {
                 throw new BizException(BizErrorCode.AUTH_COMPANY_ADMIN_EXISTS);
             }
         }
-        if (RoleCodes.COMPANY_USER.equals(systemRole) && RoleCodes.COMPANY_ADMIN.equals(currentSystemRole)) {
-            if (userAccountMapper.countByCompanyIdAndRoleCode(companyId, RoleCodes.COMPANY_ADMIN) <= 1) {
+        if (RoleCodes.SYSTEM_USER.equals(systemRole) && RoleCodes.SYSTEM_ADMIN.equals(currentSystemRole)) {
+            if (userAccountMapper.countByCompanyIdAndRoleCode(companyId, RoleCodes.SYSTEM_ADMIN) <= 1) {
                 throw new BizException(BizErrorCode.AUTH_LAST_COMPANY_ADMIN);
             }
         }
@@ -147,8 +147,9 @@ public class LegacyUserController {
     @GetMapping("/roles")
     public ApiResponse<List<Map<String, String>>> roles() {
         return ApiResponse.success(List.of(
-            Map.of("roleCode", RoleCodes.COMPANY_ADMIN, "roleName", "Comp Admin"),
-            Map.of("roleCode", RoleCodes.COMPANY_USER, "roleName", "Comp User"),
+            Map.of("roleCode", RoleCodes.SYSTEM_ADMIN, "roleName", "Sys Admin"),
+            Map.of("roleCode", RoleCodes.SYSTEM_USER, "roleName", "Sys User"),
+            Map.of("roleCode", RoleCodes.COMPANY_ADMIN, "roleName", "Administrator"),
             Map.of("roleCode", RoleCodes.DOCUMENT_OWNER, "roleName", "Document owner"),
             Map.of("roleCode", RoleCodes.GENERAL_USER, "roleName", "General User"),
             Map.of("roleCode", RoleCodes.MANAGER, "roleName", "Manager"),

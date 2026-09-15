@@ -95,8 +95,7 @@ public class ProductService { // 商品业务服务类
         if (product == null) {
             throw new BizException(BizErrorCode.COMMERCE_PRODUCT_NOT_FOUND);
         }
-        UserProduct userProduct = userProductMapper.selectByUserIdAndProductId(
-            currentUserAccessor.requireUserId(), product.getProductId());
+        UserProduct userProduct = resolveActiveProductForCurrentUser(product.getProductId());
         if (userProduct == null) {
             throw new BizException(BizErrorCode.COMMERCE_USER_PRODUCT_NOT_FOUND);
         }
@@ -121,15 +120,36 @@ public class ProductService { // 商品业务服务类
 
     /** 当前用户已购 SOC2 的审计类型；未登录或未购买则返回 null。 */
     private String resolvePurchasedAuditType(Integer productId) {
-        Integer userId = currentUserAccessor.currentUserId();
-        if (userId == null || productId == null) {
-            return null;
-        }
-        UserProduct userProduct = userProductMapper.selectByUserIdAndProductId(userId, productId);
+        UserProduct userProduct = resolveActiveProductForCurrentUser(productId);
         if (userProduct == null || userProduct.getAuditType() == null || userProduct.getAuditType().isBlank()) {
             return null;
         }
         return userProduct.getAuditType();
+    }
+
+    /**
+     * 解析当前用户可用的订阅：优先本人记录，其次同公司任一 ACTIVE 订阅（邀请成员共享）。
+     */
+    private UserProduct resolveActiveProductForCurrentUser(Integer productId) {
+        Integer userId = currentUserAccessor.currentUserId();
+        if (userId == null || productId == null) {
+            return null;
+        }
+        UserProduct mine = userProductMapper.selectByUserIdAndProductId(userId, productId);
+        if (mine != null) {
+            return mine;
+        }
+        var user = userAccountMapper.selectById(userId);
+        if (user == null || user.getCompanyId() == null) {
+            return null;
+        }
+        List<UserProduct> companyProducts = userProductMapper.listActiveByCompanyId(user.getCompanyId());
+        for (UserProduct item : companyProducts) {
+            if (productId.equals(item.getProductId())) {
+                return item;
+            }
+        }
+        return null;
     }
 
     // 将商品下所有套餐转为 ProductDetail2Response 列表

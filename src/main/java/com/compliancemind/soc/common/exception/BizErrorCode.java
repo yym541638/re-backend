@@ -24,6 +24,8 @@ public enum BizErrorCode {
     AUTH_UNSUPPORTED_USER_TYPE(400, "error.auth.unsupported_user_type"),
     AUTH_PERMISSION_REQUIRED(400, "error.auth.permission_required"),
     AUTH_COMPANY_ADMIN_EXISTS(400, "error.auth.company_admin_exists"),
+    /** 无邀请码注册时公司名已存在，禁止按公司名挂靠加入。 */
+    AUTH_COMPANY_ALREADY_EXISTS(400, "error.auth.company_already_exists"),
     AUTH_LAST_COMPANY_ADMIN(400, "error.auth.last_company_admin"),
     AUTH_DISPLAY_NAME_REQUIRED(400, "error.auth.display_name_required"),
     AUTH_CURRENT_USER_NOT_FOUND(401, "error.auth.current_user_not_found"),

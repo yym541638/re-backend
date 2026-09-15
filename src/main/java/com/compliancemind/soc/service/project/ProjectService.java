@@ -146,14 +146,19 @@ public class ProjectService {
     /**
      * 查询可选成员用户：系统管理员看本公司全部用户；项目管理员仅看本公司项目下人员。
      *
-     * <p>{@code companyName} 必须与当前登录用户所属公司一致，防止跨公司越权查询。</p>
+     * <p>{@code companyName} 为空时回退为当前用户所属公司；非空时必须与所属公司一致，防止跨公司越权查询。</p>
      */
     public List<ProjectCompanyUserItem> listCompanyUsers(String companyName, String keyword) {
         authorizationService.requireProjectUserDirectoryAccess();
         UserAccount currentUser = authorizationService.currentUser();
         Company company = companyMapper.selectById(currentUser.getCompanyId());
-        if (company == null || companyName == null || companyName.isBlank()
-                || !company.getCompanyName().equalsIgnoreCase(companyName.trim())) {
+        if (company == null) {
+            throw new BizException(BizErrorCode.COMPANY_NOT_FOUND);
+        }
+        String resolvedCompanyName = companyName == null || companyName.isBlank()
+            ? company.getCompanyName()
+            : companyName.trim();
+        if (!company.getCompanyName().equalsIgnoreCase(resolvedCompanyName)) {
             throw new BizException(BizErrorCode.COMPANY_NOT_FOUND);
         }
         List<UserAccount> users = authorizationService.isSystemAdmin()

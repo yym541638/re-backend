@@ -34,4 +34,22 @@ public class RequestIndividualUpdateRequest {
 
     @JsonAlias({"upload_evidence_manual_status", "evidence_manual_status"})
     private String uploadEvidenceManualStatus;
+
+    /** Manual / AI review status: RED / YELLOW / GREEN / PENDING，或 not right / need attention / all good。 */
+    @JsonAlias({
+        "ai_review_status",
+        "request_evidence_review_ai",
+        "request_evidence_review_ai_status",
+        "request_individual_review_status",
+        "review_ai_status"
+    })
+    private String aiReviewStatus;
+
+    @JsonAlias({
+        "ai_review_comment",
+        "ai_comment_content",
+        "request_individual_review_comment",
+        "review_comment"
+    })
+    private String aiReviewComment;
 }

@@ -18,7 +18,7 @@ public class ProfileResponse {
     private String jobTitle;
     @JsonProperty("role")
     private String roleCode;
-    /** 系统角色：COMP_ADMIN / COMP_USER。 */
+    /** 系统角色：SYS_ADMIN / SYS_USER。 */
     @JsonProperty("system_role")
     private String systemRole;
     /** 用户类型：CLIENT / CONSULTANT / AUDITOR。 */

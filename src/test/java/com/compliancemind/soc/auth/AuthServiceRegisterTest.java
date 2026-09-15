@@ -37,7 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * 对照 {@code API_Doc_v4.md} §2.2 Register 的业务逻辑。
+ * 注册：开户强制 SYS_ADMIN + 公司名唯一；加入必须邀请码。
  */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceRegisterTest {
@@ -65,7 +65,7 @@ class AuthServiceRegisterTest {
         ReflectionTestUtils.setField(authService, "expireSeconds", 7200L);
     }
 
-    private RegisterRequest legacyRequest() {
+    private RegisterRequest bootstrapRequest() {
         RegisterRequest r = new RegisterRequest();
         r.setFirstName("George");
         r.setLastName("Yao");
@@ -73,18 +73,15 @@ class AuthServiceRegisterTest {
         r.setPassword("Test@123456");
         r.setPhone("13800000000");
         r.setCompanyName("Demo Company");
-        r.setPermissionCode("General User");
+        r.setUserType("CLIENT");
+        // 客户端即使传 User，开户也应被忽略并强制 Admin
+        r.setPermissionCode("SYS_USER");
         return r;
     }
 
-    private RegisterRequest altRequest() {
-        RegisterRequest r = new RegisterRequest();
-        r.setDisplayName("George Yao");
-        r.setEmail("test@test.com");
-        r.setPassword("Test@123456");
-        r.setPhone("13800000000");
-        r.setCompanyName("Demo Company");
-        r.setPermissionCode("General User");
+    private RegisterRequest inviteRequest() {
+        RegisterRequest r = bootstrapRequest();
+        r.setInvitationCode("INV-ABC");
         return r;
     }
 
@@ -105,52 +102,12 @@ class AuthServiceRegisterTest {
     }
 
     @Nested
-    @DisplayName("成功路径（注册后等同登录返回：purchase_status=0、redirect_to=payment）")
-    class SuccessCases {
+    @DisplayName("开户（无邀请码）")
+    class BootstrapCases {
 
         @Test
-        void register_legacy_first_last_joins_existing_company_by_name() {
-            RegisterRequest req = legacyRequest();
-            when(userAccountMapper.countByEmail(req.getEmail())).thenReturn(0L);
-            when(userAccountMapper.countByPhone(req.getPhone())).thenReturn(0L);
-
-            Company existing = new Company();
-            existing.setCompanyId(2001);
-            existing.setCompanyName("Demo Company");
-            when(companyMapper.selectByName("Demo Company")).thenReturn(existing);
-
-            stubInsertUserReturnsId(1002);
-            when(passwordEncoder.encode(req.getPassword())).thenReturn("{bcrypt}x");
-            when(userProductMapper.countActiveByUserId(1002)).thenReturn(0L);
-            when(companyMapper.selectById(2001)).thenReturn(existing);
-            when(jwtService.generateToken(1002, "George Yao", RoleCodes.GENERAL_USER)).thenReturn("jwt-token");
-
-            LoginResponse res = authService.register(req);
-
-            assertThat(res.getPurchaseStatus()).isZero();
-            assertThat(res.getRedirectTo()).isEqualTo("payment");
-            assertThat(res.getExpireSeconds()).isEqualTo(7200L);
-            assertThat(res.getToken()).isEqualTo("jwt-token");
-            assertThat(res.getUser().getDisplayName()).isEqualTo("George Yao");
-            assertThat(res.getUser().getEmail()).isEqualTo("test@test.com");
-            assertThat(res.getUser().getCompanyId()).isEqualTo(2001);
-            assertThat(res.getUser().getCompanyName()).isEqualTo("Demo Company");
-            assertThat(res.getUser().getRoleCode()).isEqualTo(RoleCodes.GENERAL_USER);
-
-            verify(companyMapper, never()).insert(any());
-            verify(invitationCodeService, never()).consumeForUser(any(), any());
-
-            ArgumentCaptor<UserAccount> cap = ArgumentCaptor.forClass(UserAccount.class);
-            verify(userAccountMapper).insert(cap.capture());
-            UserAccount saved = cap.getValue();
-            assertThat(saved.getCompanyId()).isEqualTo(2001);
-            assertThat(saved.getPasswordHash()).isEqualTo("{bcrypt}x");
-            assertThat(saved.getStatus()).isEqualTo(SocConstants.Account.STATUS_ENABLED);
-        }
-
-        @Test
-        void register_alt_display_name_creates_company_when_missing() {
-            RegisterRequest req = altRequest();
+        void creates_company_and_forces_sys_admin() {
+            RegisterRequest req = bootstrapRequest();
             when(userAccountMapper.countByEmail(req.getEmail())).thenReturn(0L);
             when(userAccountMapper.countByPhone(req.getPhone())).thenReturn(0L);
             when(companyMapper.selectByName("Demo Company")).thenReturn(null);
@@ -164,77 +121,52 @@ class AuthServiceRegisterTest {
 
             when(passwordEncoder.encode(any())).thenReturn("hash");
             when(userProductMapper.countActiveByUserId(1002)).thenReturn(0L);
-            when(jwtService.generateToken(1002, "George Yao", RoleCodes.GENERAL_USER)).thenReturn("jwt");
+            when(jwtService.generateToken(1002, "George Yao", RoleCodes.SYSTEM_ADMIN)).thenReturn("jwt");
 
-            authService.register(req);
+            LoginResponse res = authService.register(req);
+
+            assertThat(res.getPurchaseStatus()).isZero();
+            assertThat(res.getRedirectTo()).isEqualTo("payment");
+            assertThat(res.getUser().getRoleCode()).isEqualTo(RoleCodes.SYSTEM_ADMIN);
+            assertThat(res.getUser().getSystemRole()).isEqualTo(RoleCodes.SYSTEM_ADMIN);
 
             ArgumentCaptor<Company> companyCap = ArgumentCaptor.forClass(Company.class);
             verify(companyMapper).insert(companyCap.capture());
             assertThat(companyCap.getValue().getCompanyName()).isEqualTo("Demo Company");
+
+            ArgumentCaptor<UserAccount> userCap = ArgumentCaptor.forClass(UserAccount.class);
+            verify(userAccountMapper).insert(userCap.capture());
+            assertThat(userCap.getValue().getRoleCode()).isEqualTo(RoleCodes.SYSTEM_ADMIN);
+            assertThat(userCap.getValue().getStatus()).isEqualTo(SocConstants.Account.STATUS_ENABLED);
         }
 
         @Test
-        void register_permission_alias_general_user_normalized() {
-            RegisterRequest req = altRequest();
-            req.setPermissionCode("USER");
+        void rejects_existing_company_name_even_if_client_asks_user_role() {
+            RegisterRequest req = bootstrapRequest();
             when(userAccountMapper.countByEmail(any())).thenReturn(0L);
             when(userAccountMapper.countByPhone(any())).thenReturn(0L);
             Company existing = new Company();
-            existing.setCompanyId(1);
+            existing.setCompanyId(2001);
             existing.setCompanyName("Demo Company");
-            when(companyMapper.selectByName(any())).thenReturn(existing);
-            stubInsertUserReturnsId(1002);
-            when(passwordEncoder.encode(any())).thenReturn("h");
-            when(userProductMapper.countActiveByUserId(1002)).thenReturn(0L);
-            when(companyMapper.selectById(1)).thenReturn(existing);
-            when(jwtService.generateToken(1002, "George Yao", RoleCodes.GENERAL_USER)).thenReturn("t");
-
-            LoginResponse res = authService.register(req);
-
-            assertThat(res.getUser().getRoleCode()).isEqualTo(RoleCodes.GENERAL_USER);
-        }
-
-        @Test
-        void register_legacy_role_code_maps_to_permission_when_permission_missing() {
-            RegisterRequest req = altRequest();
-            req.setPermissionCode(null);
-            req.setRoleCode("GENERAL_USER");
-            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
-            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
-            Company existing = new Company();
-            existing.setCompanyId(1);
-            when(companyMapper.selectByName(any())).thenReturn(existing);
-            stubInsertUserReturnsId(1002);
-            when(passwordEncoder.encode(any())).thenReturn("h");
-            when(userProductMapper.countActiveByUserId(1002)).thenReturn(0L);
-            when(companyMapper.selectById(1)).thenReturn(existing);
-            when(jwtService.generateToken(1002, "George Yao", RoleCodes.GENERAL_USER)).thenReturn("t");
-
-            LoginResponse res = authService.register(req);
-
-            assertThat(res.getUser().getRoleCode()).isEqualTo(RoleCodes.GENERAL_USER);
-        }
-
-        @Test
-        void register_admin_rejected_when_company_already_has_admin() {
-            RegisterRequest req = altRequest();
-            req.setPermissionCode("Admin");
-            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
-            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
-            Company existing = new Company();
-            existing.setCompanyId(1);
-            when(companyMapper.selectByName(any())).thenReturn(existing);
-            when(userAccountMapper.countByCompanyIdAndRoleCode(1, RoleCodes.COMPANY_ADMIN)).thenReturn(1L);
+            when(companyMapper.selectByName("Demo Company")).thenReturn(existing);
 
             assertThatThrownBy(() -> authService.register(req))
                 .isInstanceOf(BizException.class)
-                .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_COMPANY_ADMIN_EXISTS.getCode());
+                .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_COMPANY_ALREADY_EXISTS.getCode());
+
+            verify(companyMapper, never()).insert(any());
+            verify(userAccountMapper, never()).insert(any());
         }
+    }
+
+    @Nested
+    @DisplayName("邀请加入")
+    class InviteCases {
 
         @Test
-        void register_with_invitation_code_uses_company_from_invitation_and_consumes_code() {
-            RegisterRequest req = altRequest();
-            req.setInvitationCode("INV-ABC");
+        void uses_invitation_company_and_defaults_sys_user() {
+            RegisterRequest req = inviteRequest();
+            req.setPermissionCode("SYS_ADMIN"); // 客户端自选 Admin 应被忽略
 
             when(userAccountMapper.countByEmail(any())).thenReturn(0L);
             when(userAccountMapper.countByPhone(any())).thenReturn(0L);
@@ -252,12 +184,13 @@ class AuthServiceRegisterTest {
             stubInsertUserReturnsId(1002);
             when(passwordEncoder.encode(any())).thenReturn("h");
             when(userProductMapper.countActiveByUserId(1002)).thenReturn(0L);
-            when(jwtService.generateToken(1002, "George Yao", RoleCodes.GENERAL_USER)).thenReturn("t");
+            when(jwtService.generateToken(1002, "George Yao", RoleCodes.SYSTEM_USER)).thenReturn("t");
 
             LoginResponse res = authService.register(req);
 
             assertThat(res.getUser().getCompanyId()).isEqualTo(3001);
             assertThat(res.getUser().getCompanyName()).isEqualTo("Invited Co");
+            assertThat(res.getUser().getRoleCode()).isEqualTo(RoleCodes.SYSTEM_USER);
 
             verify(companyMapper, never()).insert(any());
             verify(companyMapper, never()).selectByName(any());
@@ -265,11 +198,73 @@ class AuthServiceRegisterTest {
         }
 
         @Test
-        void register_trims_email_phone_company_invitation_strings() {
-            RegisterRequest req = altRequest();
+        void invite_member_role_sys_admin_honored_when_company_has_no_admin() {
+            RegisterRequest req = inviteRequest();
+            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
+            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
+
+            InvitationCode inv = new InvitationCode();
+            inv.setCompanyId(3001);
+            inv.setMemberRole("SYS_ADMIN");
+            when(invitationCodeService.requireUsableCode("INV-ABC")).thenReturn(inv);
+
+            Company invitedCompany = new Company();
+            invitedCompany.setCompanyId(3001);
+            invitedCompany.setCompanyName("Invited Co");
+            when(companyMapper.selectById(3001)).thenReturn(invitedCompany);
+            when(userAccountMapper.countByCompanyIdAndRoleCode(3001, RoleCodes.SYSTEM_ADMIN)).thenReturn(0L);
+
+            stubInsertUserReturnsId(1002);
+            when(passwordEncoder.encode(any())).thenReturn("h");
+            when(userProductMapper.countActiveByUserId(1002)).thenReturn(0L);
+            when(jwtService.generateToken(1002, "George Yao", RoleCodes.SYSTEM_ADMIN)).thenReturn("t");
+
+            LoginResponse res = authService.register(req);
+
+            assertThat(res.getUser().getRoleCode()).isEqualTo(RoleCodes.SYSTEM_ADMIN);
+        }
+
+        @Test
+        void invite_member_role_sys_admin_rejected_when_admin_exists() {
+            RegisterRequest req = inviteRequest();
+            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
+            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
+
+            InvitationCode inv = new InvitationCode();
+            inv.setCompanyId(3001);
+            inv.setMemberRole("SYS_ADMIN");
+            when(invitationCodeService.requireUsableCode("INV-ABC")).thenReturn(inv);
+
+            Company invitedCompany = new Company();
+            invitedCompany.setCompanyId(3001);
+            when(companyMapper.selectById(3001)).thenReturn(invitedCompany);
+            when(userAccountMapper.countByCompanyIdAndRoleCode(3001, RoleCodes.SYSTEM_ADMIN)).thenReturn(1L);
+
+            assertThatThrownBy(() -> authService.register(req))
+                .isInstanceOf(BizException.class)
+                .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_COMPANY_ADMIN_EXISTS.getCode());
+        }
+
+        @Test
+        void invitation_company_missing() {
+            RegisterRequest req = inviteRequest();
+            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
+            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
+            InvitationCode inv = new InvitationCode();
+            inv.setCompanyId(999);
+            when(invitationCodeService.requireUsableCode("INV-ABC")).thenReturn(inv);
+            when(companyMapper.selectById(999)).thenReturn(null);
+
+            assertThatThrownBy(() -> authService.register(req))
+                .isInstanceOf(BizException.class)
+                .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_INVITATION_COMPANY_MISSING.getCode());
+        }
+
+        @Test
+        void trims_email_phone_invitation_strings() {
+            RegisterRequest req = inviteRequest();
             req.setEmail("  test@test.com  ");
             req.setPhone("  13800000000 ");
-            req.setCompanyName(" Demo Company ");
             req.setInvitationCode("  INV-X  ");
 
             when(userAccountMapper.countByEmail("test@test.com")).thenReturn(0L);
@@ -286,7 +281,7 @@ class AuthServiceRegisterTest {
             stubInsertUserReturnsId(2);
             when(passwordEncoder.encode(any())).thenReturn("h");
             when(userProductMapper.countActiveByUserId(2)).thenReturn(0L);
-            when(jwtService.generateToken(2, "George Yao", RoleCodes.GENERAL_USER)).thenReturn("t");
+            when(jwtService.generateToken(2, "George Yao", RoleCodes.SYSTEM_USER)).thenReturn("t");
 
             authService.register(req);
 
@@ -294,6 +289,7 @@ class AuthServiceRegisterTest {
             verify(userAccountMapper).insert(cap.capture());
             assertThat(cap.getValue().getEmail()).isEqualTo("test@test.com");
             assertThat(cap.getValue().getPhone()).isEqualTo("13800000000");
+            assertThat(cap.getValue().getRoleCode()).isEqualTo(RoleCodes.SYSTEM_USER);
         }
     }
 
@@ -303,7 +299,7 @@ class AuthServiceRegisterTest {
 
         @Test
         void email_already_registered() {
-            RegisterRequest req = altRequest();
+            RegisterRequest req = bootstrapRequest();
             when(userAccountMapper.countByEmail(req.getEmail())).thenReturn(1L);
 
             assertThatThrownBy(() -> authService.register(req))
@@ -313,7 +309,7 @@ class AuthServiceRegisterTest {
 
         @Test
         void phone_already_registered() {
-            RegisterRequest req = altRequest();
+            RegisterRequest req = bootstrapRequest();
             when(userAccountMapper.countByEmail(req.getEmail())).thenReturn(0L);
             when(userAccountMapper.countByPhone(req.getPhone())).thenReturn(1L);
 
@@ -323,50 +319,16 @@ class AuthServiceRegisterTest {
         }
 
         @Test
-        void invitation_company_missing() {
-            RegisterRequest req = altRequest();
-            req.setInvitationCode("INV");
-
-            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
-            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
-            InvitationCode inv = new InvitationCode();
-            inv.setCompanyId(999);
-            when(invitationCodeService.requireUsableCode("INV")).thenReturn(inv);
-            when(companyMapper.selectById(999)).thenReturn(null);
-
-            assertThatThrownBy(() -> authService.register(req))
-                .isInstanceOf(BizException.class)
-                .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_INVITATION_COMPANY_MISSING.getCode());
-        }
-
-        @Test
-        void unsupported_company_permission_project_owner() {
-            RegisterRequest req = altRequest();
-            req.setPermissionCode("PROJECT_OWNER");
-
-            when(userAccountMapper.countByEmail(any())).thenReturn(0L);
-            when(userAccountMapper.countByPhone(any())).thenReturn(0L);
-            Company existing = new Company();
-            existing.setCompanyId(1);
-            when(companyMapper.selectByName(any())).thenReturn(existing);
-
-            assertThatThrownBy(() -> authService.register(req))
-                .isInstanceOf(BizException.class)
-                .hasFieldOrPropertyWithValue("code", BizErrorCode.AUTH_UNSUPPORTED_USER_ROLE.getCode());
-        }
-
-        @Test
         void display_name_required_when_no_display_no_first_last() {
-            RegisterRequest req = altRequest();
+            RegisterRequest req = bootstrapRequest();
             req.setDisplayName(null);
             req.setFirstName(null);
             req.setLastName(null);
 
             when(userAccountMapper.countByEmail(any())).thenReturn(0L);
             when(userAccountMapper.countByPhone(any())).thenReturn(0L);
-            Company existing = new Company();
-            existing.setCompanyId(1);
-            when(companyMapper.selectByName(any())).thenReturn(existing);
+            when(companyMapper.selectByName(any())).thenReturn(null);
+            stubInsertCompanyReturnsId(1);
 
             assertThatThrownBy(() -> authService.register(req))
                 .isInstanceOf(BizException.class)

@@ -26,15 +26,16 @@ public class RegisterRequest {
 
     /**
      * 公司名称。
-     * <p>无邀请码时必填；有邀请码时由邀请码绑定公司决定，可省略。</p>
+     * <p>无邀请码时必填，且须为尚未存在的新公司（同名忽略大小写则拒绝，须走邀请码加入）；
+     * 有邀请码时由邀请码绑定公司决定，可省略。</p>
      */
     @JsonAlias({"companyName"})
     private String companyName;
 
     /**
-     * 系统角色（注册页 Permissions）：Admin / Comp User。
-     * <p>推荐传编码：{@code COMP_ADMIN} / {@code COMP_USER}。
-     * 也兼容 UI 文案，如 {@code administrator}；未传时：有邀请码默认 COMP_USER，无邀请码默认 COMP_ADMIN。</p>
+     * 系统角色（兼容旧客户端字段，服务端不再采信自选值）。
+     * <p>无邀请码开户强制 {@code SYS_ADMIN}；有邀请码加入强制 {@code SYS_USER}
+     *（除非邀请码 {@code member_role} 显式指定系统角色）。</p>
      */
     @JsonAlias({"permissions", "permission", "permissionCode", "systemRole", "system_role"})
     private String permissionCode;

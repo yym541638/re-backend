@@ -57,7 +57,7 @@ public class ProfileService {
         String systemRole = RoleCodes.toSystemRole(userAccount.getRoleCode());
         response.setSystemRole(systemRole);
         response.setUserType(UserTypes.normalize(userAccount.getUserType()));
-        response.setPermissionCode(RoleCodes.COMPANY_ADMIN.equals(systemRole) ? "administrator" : "user");
+        response.setPermissionCode(RoleCodes.SYSTEM_ADMIN.equals(systemRole) ? "administrator" : "user");
         response.setCompany(toCompanyResponse(company));
         return response;
     }
@@ -65,9 +65,17 @@ public class ProfileService {
     @Transactional(rollbackFor = Exception.class)
     public ProfileResponse updateMe(ProfileUpdateRequest request) {
         UserAccount userAccount = currentUser();
+        String email = request.getEmail().trim();
+        String phone = request.getPhone().trim();
+        if (userAccountMapper.countByEmailExcludeUserId(email, userAccount.getUserId()) > 0) {
+            throw new BizException(BizErrorCode.AUTH_EMAIL_REGISTERED);
+        }
+        if (userAccountMapper.countByPhoneExcludeUserId(phone, userAccount.getUserId()) > 0) {
+            throw new BizException(BizErrorCode.AUTH_PHONE_REGISTERED);
+        }
         userAccount.setDisplayName(request.getDisplayName().trim());
-        userAccount.setEmail(request.getEmail().trim());
-        userAccount.setPhone(request.getPhone().trim());
+        userAccount.setEmail(email);
+        userAccount.setPhone(phone);
         userAccount.setAvatarUrl(request.getAvatarUrl());
         userAccount.setJobTitle(request.getJobTitle());
         userAccountMapper.updateProfile(userAccount);

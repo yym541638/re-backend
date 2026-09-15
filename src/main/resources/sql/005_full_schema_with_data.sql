@@ -465,7 +465,7 @@ VALUES
 INSERT INTO `sys_user`
 (`user_id`, `company_id`, `display_name`, `email`, `phone`, `avatar_url`, `job_title`, `password_hash`, `role_code`, `status`, `deleted`, `created_at`, `updated_at`)
 VALUES
-(1, 1, 'George Yao', 'admin@test.com', '13800000000', '', 'Admin', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36iYuZXoD0XQJea7e6vQ5.q', 'COMP_ADMIN', 1, 0, '2026-03-27 09:00:00', '2026-03-27 09:00:00'),
+(1, 1, 'George Yao', 'admin@test.com', '13800000000', '', 'Admin', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36iYuZXoD0XQJea7e6vQ5.q', 'SYS_ADMIN', 1, 0, '2026-03-27 09:00:00', '2026-03-27 09:00:00'),
 (2, 1, 'Alice Chen', 'user@test.com', '13800000001', '', 'Auditor', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36iYuZXoD0XQJea7e6vQ5.q', 'GENERAL_USER', 1, 0, '2026-03-27 09:05:00', '2026-03-27 09:05:00');
 
 INSERT INTO `soc_project`

@@ -105,11 +105,11 @@ public class ProjectController {
      * 按公司名称查询本公司用户列表。
      *
      * <p>GET /project/company/users?companyName=xxx&amp;keyword=，需 JWT；仅公司管理员可调用。
-     * {@code companyName} 须与当前登录用户所属公司一致，用于 Access Management 成员选择弹窗。</p>
+     * {@code companyName} 可选：不传时默认当前登录用户所属公司；传入时须与所属公司一致。</p>
      */
     @GetMapping("/company/users")
     public ApiResponse<List<ProjectCompanyUserItem>> listCompanyUsers(
-            @RequestParam("companyName") String companyName,
+            @RequestParam(value = "companyName", required = false) String companyName,
             @RequestParam(value = "keyword", required = false) String keyword) {
         return ApiResponse.success(projectService.listCompanyUsers(companyName, keyword));
     }

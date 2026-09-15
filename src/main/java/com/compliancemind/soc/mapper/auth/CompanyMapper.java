@@ -14,7 +14,7 @@ public interface CompanyMapper {
     @Select("""
         select company_id, company_name, company_code, industry, website, contact_name, contact_phone, address, created_at, updated_at
         from sys_company
-        where company_name = #{companyName}
+        where lower(company_name) = lower(#{companyName})
         limit 1
         """)
     Company selectByName(@Param("companyName") String companyName);

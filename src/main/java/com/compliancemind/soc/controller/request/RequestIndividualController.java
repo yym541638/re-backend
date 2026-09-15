@@ -12,6 +12,10 @@ import com.compliancemind.soc.entity.request.RequestAttachment;
 import com.compliancemind.soc.service.request.RequestMasterService;
 import com.compliancemind.soc.service.request.RequestService;
 import jakarta.validation.Valid;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -151,5 +156,32 @@ public class RequestIndividualController {
                                               @PathVariable("attachmentId") Long attachmentId) {
         requestService.deleteAttachment(requestId, attachmentId);
         return ApiResponse.success();
+    }
+
+    /**
+     * View / download 证据附件。
+     *
+     * <p>GET /request/individual/{requestId}/attachments/{attachmentId}/download</p>
+     */
+    @GetMapping(value = "/{requestId}/attachments/{attachmentId}/download",
+        produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<byte[]> downloadAttachment(@PathVariable("requestId") Long requestId,
+                                                     @PathVariable("attachmentId") Long attachmentId) {
+        RequestService.AttachmentDownload download =
+            requestService.downloadAttachment(requestId, attachmentId);
+        String fileName = download.fileName();
+        if (fileName == null || fileName.isBlank()) {
+            fileName = "evidence";
+        }
+        ContentDisposition disposition = ContentDisposition.inline()
+            .filename(fileName, StandardCharsets.UTF_8)
+            .build();
+        byte[] body = download.content() == null ? new byte[0] : download.content();
+        // 必须用 octet-stream：text/plain 等类型会走 StringHttpMessageConverter，byte[] 无法写出 → 500
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .contentLength(body.length)
+            .body(body);
     }
 }

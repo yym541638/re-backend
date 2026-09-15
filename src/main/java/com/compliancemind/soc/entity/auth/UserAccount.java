@@ -29,7 +29,7 @@ public class UserAccount {
     private String userType;
     /** 密码哈希值。 */
     private String passwordHash;
-    /** 公司权限代码（如 GENERAL_USER、COMP_ADMIN）。 */
+    /** 公司权限代码（如 SYS_ADMIN、SYS_USER；项目角色另见成员表）。 */
     private String roleCode;
     /** 账号状态（1=启用，0=禁用）。 */
     private Integer status;

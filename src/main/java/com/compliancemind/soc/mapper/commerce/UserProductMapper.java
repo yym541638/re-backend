@@ -28,6 +28,15 @@ public interface UserProductMapper {
     long countActiveByUserId(@Param("userId") Integer userId);
 
     @Select("""
+        select count(1)
+        from sys_user_product up
+        inner join sys_user u on u.user_id = up.user_id and u.deleted = 0
+        where u.company_id = #{companyId}
+          and up.status = 'ACTIVE'
+        """)
+    long countActiveByCompanyId(@Param("companyId") Integer companyId);
+
+    @Select("""
         select user_product_id, user_id, product_id, product_name, package_id, audit_type, included_features, source_order_no,
                status, start_time, end_time, created_at, updated_at
         from sys_user_product

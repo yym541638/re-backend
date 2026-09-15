@@ -303,6 +303,12 @@ public final class SocConstants {
         public static final String EXT_DOCX = ".docx";
         public static final String EXT_XLS = ".xls";
         public static final String EXT_XLSX = ".xlsx";
+        public static final String EXT_PNG = ".png";
+        public static final String EXT_JPG = ".jpg";
+        public static final String EXT_JPEG = ".jpeg";
+        public static final String EXT_WEBP = ".webp";
+        public static final String EXT_TXT = ".txt";
+        public static final String EXT_CSV = ".csv";
     }
 
     /** AI / Ollama integration defaults. */

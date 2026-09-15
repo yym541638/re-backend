@@ -44,6 +44,18 @@ public interface UserAccountMapper {
 
     @Select("""
         select count(1) from sys_user
+        where email = #{email} and user_id <> #{userId} and deleted = 0
+        """)
+    long countByEmailExcludeUserId(@Param("email") String email, @Param("userId") Integer userId);
+
+    @Select("""
+        select count(1) from sys_user
+        where phone = #{phone} and user_id <> #{userId} and deleted = 0
+        """)
+    long countByPhoneExcludeUserId(@Param("phone") String phone, @Param("userId") Integer userId);
+
+    @Select("""
+        select count(1) from sys_user
         where company_id = #{companyId} and role_code = #{roleCode} and deleted = 0
         """)
     long countByCompanyIdAndRoleCode(@Param("companyId") Integer companyId,

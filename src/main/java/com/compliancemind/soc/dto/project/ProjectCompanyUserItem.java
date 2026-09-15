@@ -23,7 +23,7 @@ public class ProjectCompanyUserItem {
     @JsonProperty("permission")
     private String permissionCode;
 
-    /** 系统角色：COMP_ADMIN / COMP_USER。 */
+    /** 系统角色：SYS_ADMIN / SYS_USER。 */
     @JsonProperty("system_role")
     private String systemRole;
 

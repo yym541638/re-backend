@@ -108,7 +108,7 @@ class AuthServiceLoginTest {
             assertThat(res.getUser().getAvatarUrl()).isEmpty();
             assertThat(res.getUser().getJobTitle()).isEqualTo("Auditor");
             assertThat(res.getUser().getRoleCode()).isEqualTo(RoleCodes.GENERAL_USER);
-            assertThat(res.getUser().getSystemRole()).isEqualTo(RoleCodes.COMPANY_USER);
+            assertThat(res.getUser().getSystemRole()).isEqualTo(RoleCodes.SYSTEM_USER);
             assertThat(res.getUser().getPermissionCode()).isEqualTo("user");
 
             verify(jwtService).generateToken(1001, "George Yao", RoleCodes.GENERAL_USER);

@@ -486,6 +486,16 @@ public class RequestMasterService {
         item.setRequestIndividualReviewStatus(detail.getRequestEvidenceReviewAi());
         item.setRequestIndividualReviewComment(detail.getAiCommentContent());
         item.setCommentContent(detail.getCommentContent());
+        if (detail.getEvidences() != null) {
+            item.setEvidences(detail.getEvidences());
+            item.setUploadEvidence(detail.getEvidences().stream()
+                .map(e -> e.getFile() == null ? "" : e.getFile())
+                .filter(s -> !s.isBlank())
+                .collect(java.util.stream.Collectors.joining(", ")));
+            if (!detail.getEvidences().isEmpty()) {
+                item.setUploadEvidenceDateTime(detail.getEvidences().get(0).getTime());
+            }
+        }
         return item;
     }
 

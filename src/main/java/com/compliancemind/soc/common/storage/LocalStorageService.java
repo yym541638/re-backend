@@ -27,7 +27,13 @@ public class LocalStorageService {
         SocConstants.Storage.EXT_DOC,
         SocConstants.Storage.EXT_DOCX,
         SocConstants.Storage.EXT_XLS,
-        SocConstants.Storage.EXT_XLSX);
+        SocConstants.Storage.EXT_XLSX,
+        SocConstants.Storage.EXT_PNG,
+        SocConstants.Storage.EXT_JPG,
+        SocConstants.Storage.EXT_JPEG,
+        SocConstants.Storage.EXT_WEBP,
+        SocConstants.Storage.EXT_TXT,
+        SocConstants.Storage.EXT_CSV);
 
     @Value("${app.storage.root}")
     private String storageRoot;

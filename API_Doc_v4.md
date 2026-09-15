@@ -450,7 +450,9 @@ Response:
   "code": 0,
   "message": "success",
   "data": [
-    { "role_code": "COMP_ADMIN", "role_name": "Comp Admin" },
+    { "role_code": "SYS_ADMIN", "role_name": "Sys Admin" },
+    { "role_code": "SYS_USER", "role_name": "Sys User" },
+    { "role_code": "COMP_ADMIN", "role_name": "Administrator" },
     { "role_code": "DOCUMENT_OWNER", "role_name": "Document owner" },
     { "role_code": "GENERAL_USER", "role_name": "General User" },
     { "role_code": "MANAGER", "role_name": "Manager" },
@@ -982,7 +984,7 @@ Response:
 ### 12.1 Update Package Price
 - Method: `PUT`
 - Path: `/product/package/{packageId}/price`
-- Permission: company admin (`COMP_ADMIN`)
+- Permission: company admin (`SYS_ADMIN`)
 
 Request:
 ```json

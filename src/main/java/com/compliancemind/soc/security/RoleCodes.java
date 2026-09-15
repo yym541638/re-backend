@@ -5,12 +5,26 @@ import java.util.Set;
 
 /**
  * 公司与项目维度角色常量及别名归一化（如 USER → GENERAL_USER）。
+ * <p>系统角色统一 {@code SYS_} 前缀，与项目角色（如 {@code COMP_ADMIN}）区分。</p>
  */
 public final class RoleCodes {
 
+    /** 系统角色：公司管理员。 */
+    public static final String SYSTEM_ADMIN = "SYS_ADMIN";
+    /** 系统角色：普通公司用户。 */
+    public static final String SYSTEM_USER = "SYS_USER";
+
+    /**
+     * 项目角色：Administrator（Access Management 槽位）。
+     * <p>勿与系统角色 {@link #SYSTEM_ADMIN} 混淆。</p>
+     */
     public static final String COMPANY_ADMIN = "COMP_ADMIN";
-    /** 系统角色：普通公司用户（与业务身份 user_type 分离）。 */
-    public static final String COMPANY_USER = "COMP_USER";
+    /**
+     * @deprecated 系统角色请使用 {@link #SYSTEM_USER}；保留别名避免旧引用编译失败。
+     */
+    @Deprecated
+    public static final String COMPANY_USER = SYSTEM_USER;
+
     public static final String DOCUMENT_OWNER = "DOCUMENT_OWNER";
     public static final String GENERAL_USER = "GENERAL_USER";
     public static final String MANAGER = "MANAGER";
@@ -18,15 +32,16 @@ public final class RoleCodes {
     public static final String PROJECT_OWNER = "PROJECT_OWNER";
 
     private static final Set<String> COMPANY_ROLES = Set.of(
+        SYSTEM_ADMIN,
+        SYSTEM_USER,
         COMPANY_ADMIN,
-        COMPANY_USER,
         DOCUMENT_OWNER,
         GENERAL_USER,
         MANAGER,
         MANAGER_2
     );
 
-    private static final Set<String> SYSTEM_ROLES = Set.of(COMPANY_ADMIN, COMPANY_USER);
+    private static final Set<String> SYSTEM_ROLES = Set.of(SYSTEM_ADMIN, SYSTEM_USER);
 
     private static final Set<String> PROJECT_ROLES = Set.of(
         COMPANY_ADMIN,
@@ -44,7 +59,9 @@ public final class RoleCodes {
         String normalized = normalizeToken(roleCode);
         return switch (normalized) {
             case "", "USER", "GENERALUSER", "GENERAL_USER", "GENERAL" -> GENERAL_USER;
-            case "COMPUSER", "COMP_USER", "COMPANYUSER", "COMPANY_USER" -> COMPANY_USER;
+            case "SYSUSER", "SYS_USER",
+                 "COMPUSER", "COMP_USER", "COMPANYUSER", "COMPANY_USER" -> SYSTEM_USER;
+            case "SYSADMIN", "SYS_ADMIN", "SYSTEMADMIN", "SYSTEM_ADMIN" -> SYSTEM_ADMIN;
             case "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN",
                  "ADMINISTRATOR", "ADMINISTRATOR_ONLY_1_ACCOUNT" -> COMPANY_ADMIN;
             case "DOCUMENTOWNER", "DOCUMENT_OWNER", "DOCUMENT" -> DOCUMENT_OWNER;
@@ -58,21 +75,27 @@ public final class RoleCodes {
     }
 
     /**
-     * 双层权限中的系统角色：仅 {@link #COMPANY_ADMIN} / {@link #COMPANY_USER}。
-     * <p>历史细粒度公司角色（MANAGER 等）对外一律映射为 {@link #COMPANY_USER}。</p>
+     * 双层权限中的系统角色：仅 {@link #SYSTEM_ADMIN} / {@link #SYSTEM_USER}。
+     * <p>历史 {@code COMP_ADMIN} 及细粒度公司角色分别映射为 SYS_ADMIN / SYS_USER。</p>
      */
     public static String toSystemRole(String roleCode) {
-        return COMPANY_ADMIN.equals(normalizeCompanyRole(roleCode)) ? COMPANY_ADMIN : COMPANY_USER;
+        String company = normalizeCompanyRole(roleCode);
+        if (SYSTEM_ADMIN.equals(company) || COMPANY_ADMIN.equals(company)) {
+            return SYSTEM_ADMIN;
+        }
+        return SYSTEM_USER;
     }
 
-    /** 归一化并可校验的系统角色（仅接受 Admin / Comp User 及其别名）。 */
+    /** 归一化并可校验的系统角色（仅接受 Sys Admin / Sys User 及其别名，含旧 COMP_*）。 */
     public static String normalizeSystemRole(String roleCode) {
         String normalized = normalizeToken(roleCode);
         return switch (normalized) {
-            case "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN",
-                 "ADMINISTRATOR", "ADMINISTRATOR_ONLY_1_ACCOUNT" -> COMPANY_ADMIN;
-            case "USER", "COMPUSER", "COMP_USER", "COMPANYUSER", "COMPANY_USER",
-                 "GENERALUSER", "GENERAL_USER", "GENERAL" -> COMPANY_USER;
+            case "SYSADMIN", "SYS_ADMIN", "SYSTEMADMIN", "SYSTEM_ADMIN",
+                 "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN",
+                 "ADMINISTRATOR", "ADMINISTRATOR_ONLY_1_ACCOUNT" -> SYSTEM_ADMIN;
+            case "SYSUSER", "SYS_USER", "SYSTEMUSER", "SYSTEM_USER",
+                 "USER", "COMPUSER", "COMP_USER", "COMPANYUSER", "COMPANY_USER",
+                 "GENERALUSER", "GENERAL_USER", "GENERAL" -> SYSTEM_USER;
             default -> normalized;
         };
     }
@@ -83,8 +106,10 @@ public final class RoleCodes {
     public static boolean isExplicitSystemRoleInput(String roleCode) {
         String normalized = normalizeToken(roleCode);
         return switch (normalized) {
-            case "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN",
+            case "SYSADMIN", "SYS_ADMIN", "SYSTEMADMIN", "SYSTEM_ADMIN",
+                 "ADMIN", "COMPADMIN", "COMP_ADMIN", "COMPANYADMIN", "COMPANY_ADMIN",
                  "ADMINISTRATOR", "ADMINISTRATOR_ONLY_1_ACCOUNT",
+                 "SYSUSER", "SYS_USER", "SYSTEMUSER", "SYSTEM_USER",
                  "COMPUSER", "COMP_USER", "COMPANYUSER", "COMPANY_USER" -> true;
             default -> false;
         };
@@ -96,6 +121,10 @@ public final class RoleCodes {
 
     public static String normalizeProjectRole(String roleCode) {
         String normalized = normalizeCompanyRole(roleCode);
+        if (SYSTEM_ADMIN.equals(normalized)) {
+            // 误把系统角色当作项目角色时，落到 Administrator 槽位
+            return COMPANY_ADMIN;
+        }
         if ("PROJECTOWNER".equals(normalized) || "PROJECT_OWNER".equals(normalized)) {
             return PROJECT_OWNER;
         }
@@ -125,11 +154,11 @@ public final class RoleCodes {
     }
 
     public static boolean canManageCompany(String roleCode) {
-        return COMPANY_ADMIN.equals(toSystemRole(roleCode));
+        return SYSTEM_ADMIN.equals(toSystemRole(roleCode));
     }
 
     /**
-     * 公司级可见全部项目：仅系统管理员 {@link #COMPANY_ADMIN}。
+     * 公司级可见全部项目：仅系统管理员 {@link #SYSTEM_ADMIN}。
      * <p>双层权限下 MANAGER / DOCUMENT_OWNER 等只作为项目成员角色，不再赋予公司级全项目访问。</p>
      */
     public static boolean canAccessAllProjects(String roleCode) {
@@ -147,7 +176,7 @@ public final class RoleCodes {
     public static boolean canEditProjectContent(String roleCode) {
         String normalized = normalizeProjectRole(roleCode);
         return COMPANY_ADMIN.equals(normalized)
-            || COMPANY_USER.equals(normalized)
+            || SYSTEM_USER.equals(normalized)
             || GENERAL_USER.equals(normalized)
             || MANAGER.equals(normalized)
             || MANAGER_2.equals(normalized)

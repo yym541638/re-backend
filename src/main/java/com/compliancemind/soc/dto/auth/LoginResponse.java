@@ -39,7 +39,7 @@ public class LoginResponse {
         @JsonProperty("role")
         private String roleCode;
         /**
-         * 系统角色：{@code COMP_ADMIN} / {@code COMP_USER}。
+         * 系统角色：{@code SYS_ADMIN} / {@code SYS_USER}。
          * <p>前端双层权限入口控制字段；兼容旧字段时可回退 {@link #permissionCode}=administrator。</p>
          */
         @JsonProperty("system_role")

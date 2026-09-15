@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /** Request Master 页面 Individual 列表行。 */
 @Data
@@ -39,6 +40,10 @@ public class RequestIndividualListItem {
 
     @JsonProperty("upload_evidence")
     private String uploadEvidence;
+
+    /** Evidence files for clickable view in list. */
+    @JsonProperty("evidences")
+    private List<RequestEvidenceItem> evidences;
 
     @JsonProperty("upload_evidence_date_time")
     private LocalDateTime uploadEvidenceDateTime;
