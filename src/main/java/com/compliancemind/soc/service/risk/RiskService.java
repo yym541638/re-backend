@@ -7,35 +7,60 @@ import com.compliancemind.soc.common.exception.BizException;
 import com.compliancemind.soc.dto.risk.RiskCreateRequest;
 import com.compliancemind.soc.dto.risk.RiskQueryRequest;
 import com.compliancemind.soc.dto.risk.RiskUpdateRequest;
+import com.compliancemind.soc.entity.commerce.ProductPackage;
+import com.compliancemind.soc.entity.commerce.UserProduct;
 import com.compliancemind.soc.entity.project.Project;
+import com.compliancemind.soc.entity.request.RequestCriteriaCatalog;
 import com.compliancemind.soc.entity.risk.RiskRecord;
+import com.compliancemind.soc.mapper.commerce.ProductMapper;
+import com.compliancemind.soc.mapper.commerce.UserProductMapper;
+import com.compliancemind.soc.mapper.request.RequestCriteriaCatalogMapper;
 import com.compliancemind.soc.mapper.risk.RiskMapper;
 import com.compliancemind.soc.security.AuthorizationService;
 import com.compliancemind.soc.security.CurrentUserAccessor;
 import com.compliancemind.soc.service.operationlog.OperationLogService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
-/** Risk table：项目风险清单 CRUD。 */
+/** Risk table：项目风险清单 CRUD 与按已购范围初始化。 */
 @Service
 public class RiskService {
 
     private final RiskMapper riskMapper;
+    private final RequestCriteriaCatalogMapper criteriaCatalogMapper;
+    private final UserProductMapper userProductMapper;
+    private final ProductMapper productMapper;
     private final AuthorizationService authorizationService;
     private final CurrentUserAccessor currentUserAccessor;
     private final OperationLogService operationLogService;
+    private final ObjectMapper objectMapper;
 
     public RiskService(RiskMapper riskMapper,
+                       RequestCriteriaCatalogMapper criteriaCatalogMapper,
+                       UserProductMapper userProductMapper,
+                       ProductMapper productMapper,
                        AuthorizationService authorizationService,
                        CurrentUserAccessor currentUserAccessor,
-                       OperationLogService operationLogService) {
+                       OperationLogService operationLogService,
+                       ObjectMapper objectMapper) {
         this.riskMapper = riskMapper;
+        this.criteriaCatalogMapper = criteriaCatalogMapper;
+        this.userProductMapper = userProductMapper;
+        this.productMapper = productMapper;
         this.authorizationService = authorizationService;
         this.currentUserAccessor = currentUserAccessor;
         this.operationLogService = operationLogService;
+        this.objectMapper = objectMapper;
     }
 
     public PageResponse<RiskRecord> list(RiskQueryRequest request) {
@@ -53,6 +78,78 @@ public class RiskService {
 
     public RiskRecord detail(Long riskId) {
         return requireOwnedRisk(riskId);
+    }
+
+    /**
+     * 按公司已购 Trust Services 模块，从标准条款目录灌入 Risk table（幂等）。
+     * <p>同一 {@code (cc_criteria, points_of_focus_name)} 只生成一行，避免 request catalog 多文档描述重复。</p>
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public List<RiskRecord> generateFromCatalog(Long projectId) {
+        Project project = authorizationService.requireProjectWrite(projectId);
+        Set<String> modules = resolvePurchasedModules(project.getCompanyId());
+        if (modules.isEmpty()) {
+            throw new BizException(BizErrorCode.RISK_GENERATE_NO_PURCHASE);
+        }
+        List<RequestCriteriaCatalog> catalogs = criteriaCatalogMapper.listByModuleNames(modules);
+        if (catalogs == null || catalogs.isEmpty()) {
+            throw new BizException(BizErrorCode.RISK_GENERATE_CATALOG_EMPTY);
+        }
+
+        Integer operatorId = currentUserAccessor.requireUserId();
+        // 去重：条款 + Points of Focus
+        Map<String, RequestCriteriaCatalog> unique = new LinkedHashMap<>();
+        for (RequestCriteriaCatalog catalog : catalogs) {
+            if (catalog == null) {
+                continue;
+            }
+            String criteria = trimToNull(catalog.getCriteriaCode());
+            if (criteria == null) {
+                continue;
+            }
+            String focus = trimToNull(catalog.getPointsOfFocus());
+            String key = criteria + "\n" + (focus == null ? "" : focus);
+            unique.putIfAbsent(key, catalog);
+        }
+
+        List<RiskRecord> generated = new ArrayList<>();
+        for (RequestCriteriaCatalog catalog : unique.values()) {
+            String criteria = trimToNull(catalog.getCriteriaCode());
+            String focus = trimToNull(catalog.getPointsOfFocus());
+            if (riskMapper.countByProjectCriteriaAndFocus(projectId, criteria, focus) > 0) {
+                continue;
+            }
+            RiskRecord record = new RiskRecord();
+            record.setProjectId(projectId);
+            record.setCcCriteria(criteria);
+            record.setCcCriteriaName(trimToNull(catalog.getRequirement()));
+            record.setPointsOfFocusName(focus);
+            record.setModulesName(trimToNull(catalog.getModuleName()));
+            record.setRiskLevel(SocConstants.Risk.LEVEL_MEDIUM);
+            record.setRiskSource(SocConstants.Risk.SOURCE_UPLOAD);
+            record.setDeleted(SocConstants.Project.SOFT_DELETE_FLAG);
+            record.setCreatedBy(operatorId);
+            record.setUpdatedBy(operatorId);
+            riskMapper.insert(record);
+            generated.add(riskMapper.selectById(record.getRiskId()));
+        }
+
+        if (generated.isEmpty()) {
+            RiskQueryRequest query = new RiskQueryRequest();
+            query.setProjectId(projectId);
+            query.setPageNum(1);
+            query.setPageSize(5000);
+            return riskMapper.list(query, 0, 5000);
+        }
+
+        operationLogService.record(SocConstants.OperationLog.Module.RISK,
+            SocConstants.OperationLog.Action.CREATE,
+            SocConstants.OperationLog.EntityType.RISK,
+            String.valueOf(projectId),
+            "Risk table generate",
+            projectId,
+            "Generate risk table from purchased criteria catalog (" + generated.size() + " rows)");
+        return generated;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -105,6 +202,74 @@ public class RiskService {
             displayName(record),
             record.getProjectId(),
             SocConstants.OperationLog.Detail.RISK_DELETE_EN);
+    }
+
+    private Set<String> resolvePurchasedModules(Integer companyId) {
+        List<UserProduct> products = userProductMapper.listActiveByCompanyId(companyId);
+        Set<String> modules = new LinkedHashSet<>();
+        if (products == null || products.isEmpty()) {
+            return modules;
+        }
+        for (UserProduct product : products) {
+            Set<String> fromFeatures = parseFeatureModules(product.getIncludedFeatures());
+            if (!fromFeatures.isEmpty()) {
+                modules.addAll(fromFeatures);
+                continue;
+            }
+            if (product.getPackageId() != null) {
+                ProductPackage pkg = productMapper.selectPackageById(product.getPackageId());
+                if (pkg != null) {
+                    modules.addAll(parseFeatureModules(pkg.getIncludedFeatures()));
+                }
+            }
+        }
+        return modules;
+    }
+
+    private Set<String> parseFeatureModules(String featureText) {
+        Set<String> modules = new LinkedHashSet<>();
+        if (featureText == null || featureText.isBlank()) {
+            return modules;
+        }
+        String trimmed = featureText.trim();
+        List<String> features = new ArrayList<>();
+        if (trimmed.startsWith("[")) {
+            try {
+                features = objectMapper.readValue(trimmed, new TypeReference<List<String>>() {
+                });
+            } catch (Exception ignored) {
+                features = List.of();
+            }
+        } else {
+            for (String part : trimmed.split("[,;|]")) {
+                if (part != null && !part.isBlank()) {
+                    features.add(part.trim());
+                }
+            }
+        }
+        for (String feature : features) {
+            String normalized = normalizeModuleName(feature);
+            if (normalized != null) {
+                modules.add(normalized);
+            }
+        }
+        return modules;
+    }
+
+    private String normalizeModuleName(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String text = raw.trim();
+        String upper = text.toUpperCase(Locale.ROOT).replace(' ', '_');
+        return switch (upper) {
+            case "SECURITY", "SEC" -> "Security";
+            case "AVAILABILITY", "AVL", "AVAIL" -> "Availability";
+            case "PROCESSING_INTEGRITY", "PROCESSINGINTEGRITY", "PI" -> "Processing Integrity";
+            case "CONFIDENTIALITY", "CONF" -> "Confidentiality";
+            case "PRIVACY", "PRIV" -> "Privacy";
+            default -> text;
+        };
     }
 
     private RiskRecord requireOwnedRisk(Long riskId) {

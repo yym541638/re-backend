@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * Risk table：列表、详情、新建、编辑、删除。
  */
@@ -57,6 +59,16 @@ public class RiskController {
         request.setPageNum(pageNum);
         request.setPageSize(pageSize);
         return ApiResponse.page(riskService.list(request));
+    }
+
+    /**
+     * 按已购套餐范围，从标准条款目录初始化 Risk table。
+     *
+     * <p>POST /risk-table/generate?projectId=</p>
+     */
+    @PostMapping("/generate")
+    public ApiResponse<List<RiskRecord>> generate(@RequestParam("projectId") Long projectId) {
+        return ApiResponse.success(riskService.generateFromCatalog(projectId));
     }
 
     /**

@@ -90,6 +90,8 @@ public enum BizErrorCode {
     GAP_ANALYSIS_TITLE_REQUIRED(400, "error.gap_analysis.title_required"),
 
     RISK_NOT_FOUND(404, "error.risk.not_found"),
+    RISK_GENERATE_NO_PURCHASE(400, "error.risk.generate_no_purchase"),
+    RISK_GENERATE_CATALOG_EMPTY(400, "error.risk.generate_catalog_empty"),
 
     INVITATION_NOT_FOUND(404, "error.invitation.not_found"),
     INVITATION_REVOKED(400, "error.invitation.revoked"),

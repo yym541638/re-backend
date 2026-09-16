@@ -16,6 +16,12 @@
 | `pageNum` | 否 | 默认 1 |
 | `pageSize` | 否 | 默认 10 |
 
+## 从条款库初始化（Generate）
+
+- **POST** `/api/risk-table/generate?projectId=`
+- 行为对齐 Control table / Request Individual：按公司已购模块从 `soc_request_criteria_catalog` 灌入风险行；已存在的（同条款 + Points of Focus）跳过，可重复调用。
+- 空表首次打开时，前端会静默调用本接口。
+
 ## 详情
 
 - **GET** `/api/risk-table/{riskId}`

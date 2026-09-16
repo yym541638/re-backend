@@ -81,6 +81,23 @@ public interface RiskMapper {
         """)
     RiskRecord selectById(@Param("riskId") Long riskId);
 
+    @Select("""
+        select count(1) from soc_risk
+        where deleted = 0 and project_id = #{projectId}
+        """)
+    long countByProjectId(@Param("projectId") Long projectId);
+
+    @Select("""
+        select count(1) from soc_risk
+        where deleted = 0
+          and project_id = #{projectId}
+          and cc_criteria = #{ccCriteria}
+          and ifnull(points_of_focus_name, '') = ifnull(#{pointsOfFocusName}, '')
+        """)
+    long countByProjectCriteriaAndFocus(@Param("projectId") Long projectId,
+                                        @Param("ccCriteria") String ccCriteria,
+                                        @Param("pointsOfFocusName") String pointsOfFocusName);
+
     @Insert("""
         insert into soc_risk(
             project_id, cc_criteria, cycle_name, modules_id, modules_name, cc_criteria_name,
