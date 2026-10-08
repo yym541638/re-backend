@@ -1,0 +1,6 @@
+# Large installers are hosted on GitHub Releases, not in git.
+*.exe
+*.msi
+*.dmg
+*.zip
+*.7z
